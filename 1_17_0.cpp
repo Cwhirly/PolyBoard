@@ -77,8 +77,9 @@ FFP ------------------------ Descending Power Polynomial iff Normal Polynomial
 CCHLR ---------------------- Constant Coefficient Homogeneous Linear Recursion
     | __calc ------------------- Polynomial Fast Pow
     | Fiduccia ----------------- Fiduccia Algorithm
+CCNLR --------------------- Constant Coefficient Nonhomogeneous Linear Recursion
 Update:
-Bostan-Mori
+
 
 
 
@@ -228,6 +229,7 @@ namespace Pre
         {
             gp[i] = 1ll * tmpg * gp[i - 1] % P;
             igp[i] = 1ll * tmpig * igp[i - 1] % P;
+            
         }
         ny[1] = 1;
         for (int i = 2; i <= 500010; ++i)
@@ -1138,6 +1140,7 @@ void PIO::ppri(ffp __f, int __n)
     pc('\n');
 }
 
+#define PMPE PMPE
 #ifdef PMPE
 
 namespace Multipoint_Evel
@@ -1529,36 +1532,135 @@ namespace CCHLR
         gamma.pb(1);
         for (register int i = 1; i <= k; ++i)
         {
-            gamma.pb(((P-c[i]) % P+P)%P);
+            gamma.pb(((P - c[i]) % P + P) % P);
         }
         poly __tmp;
         for (int i = 0; i < k; i++)
         {
-            __tmp.pb((a[i]%P+P)%P);
+            __tmp.pb((a[i] % P + P) % P);
         }
-        poly res= __tmp * gamma;
+        poly res = __tmp * gamma;
         res.resize(k);
         return Bostan_Mori(res, gamma, n);
     }
 }
+using CCHLR::Bostan_Mori;
+using CCHLR::Bostan_Mori_CCHLR;
+using CCHLR::Fiduccia;
 
-int n, k;
+#define CCNHLR CCNHLR
+#ifdef CCNHLR
+namespace CCNHLR
+{
+    poly gamma;
+    int __y[N], __x[N];
+    poly __calc(int b)
+    {
+        poly res, a;
+        res.pb(1);
+        a.pb(0), a.pb(1);
+        while (b)
+        {
+            if (b & 1)
+            {
+                res = res * a;
+                res %= gamma;
+                res.resize(gamma.n);
+            }
+            a = a * a;
+            a %= gamma;
+            a.resize(gamma.n);
+            b >>= 1;
+        }
+        return res;
+    }
+    poly __ksm(int b)
+    {
+        poly res, a;
+        res.pb(1);
+        a.pb(P - 1), a.pb(1);
+        while (b)
+        {
+            if (b & 1)
+            {
+                res *= a;
+            }
+            a *= a;
+            b >>= 1;
+        }
+        return res;
+    }
+    inline int Bostam_Mori_CCNHLR(int *c, int *a, int k, int n, poly p)
+    {// Very Slow
+        gamma.pb(1);
+        for (register int i = 1; i <= k; ++i)
+        {
+            gamma.pb(((P - c[i]) % P + P) % P);
+        }
+        poly __tmp, __tmp2;
+        for (int i = 0; i < k; i++)
+        {
+            __tmp.pb(a[i]);
+        }
+        __tmp2.pb(0);
+        for (int i = 1; i <= k; i++)
+            __tmp2.pb(c[i]);
+        poly __p = __tmp * __tmp2;
+        __p.resize(k);
+        for (int i = 0; i < k; i++)
+        {
+            __p[i] = P - __p[i];
+            __p[i] =(__p[i] + a[i]) % P;
+        }
+        __p.resize(k + p.n + 1);
+        for (int i = 1; i <= p.n + 1; i++)
+            __x[i] = i + k - 1;
+        PMPE(__x, p, p.n + 1, __y); // P __p
+        for (int i = 1; i <= p.n + 1; i++)
+        {
+            __p[i + k - 1] = __y[i];
+        }
+        gamma.resize(p.n + k + 1);
+        poly __a = __p * (~gamma);
+
+        __a.resize(p.n + k + 1);
+        gamma.resize(0);
+        for (register int i = 1; i <= k; ++i)
+        {
+            gamma.pb((P - c[k - i + 1]) % P);
+        }
+        gamma.pb(1);
+        gamma *= __ksm(p.n + 1);
+        poly tmp = __calc(n);
+        long long ans = 0;
+        for (int i = 0; i < p.n + k + 1; ++i)
+        {
+            ans += 1ll * tmp[i] * __a[i] % P;
+            ans %= P;
+        }
+        return tp(ans);
+    }
+}
+using CCNHLR::Bostam_Mori_CCNHLR;
+#endif
+
+int n, k, m;
 int a[N], c[N];
+poly f;
 
 inline void work()
 {
-    read(n);
-    read(k);
-    for (int i = 1; i <= k; i++)
-        read(c[i]);
+    read(n), read(m), read(k);
     for (int i = 0; i < k; i++)
         read(a[i]);
-    print(CCHLR::Bostan_Mori_CCHLR(c, a, k, n));
+    for (int i = 1; i <= k; i++)
+        read(c[i]);
+    pin(f, m + 1);
+    print(Bostam_Mori_CCNHLR(c, a, k, n, f));
 }
 
 signed main()
 {
-    freopen("PP.txt", "r", stdin);
     ios::sync_with_stdio(false);
     cin.tie(0), cout.tie(0);
     Pre::initYG();
