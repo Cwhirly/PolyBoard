@@ -35,6 +35,7 @@ POLY ----------------------- POLY
         | Fwtand ------------------ Convolute And
         | Fwtor ------------------- Convolute Or
         | Fwtxor ------------------ Convolute Xor
+        |
 UCPF ----------------------- Unclassable Polyfunctions
     | Dx ----------------------- Get Derivative
     | Integ -------------------- Get Integral
@@ -72,13 +73,12 @@ Staling -------------------- First Stirling Numbers
     | Column ------------------- For the Same Column
 FFP ------------------------ Descending Power Polynomial iff Normal Polynomial
     | Dev_Mul ------------------ Conquer Multiplication
-    | PTFFP -------------------- Normal Polynomial to Descending Power Polynomial
-    | FFPTP -------------------- Descending Power Polynomial to Normal Polynomial
-CCHLR ---------------------- Constant Coefficient Homogeneous Linear Recursion
-    | __calc ------------------- Polynomial Fast Pow
-    | Fiduccia ----------------- Fiduccia Algorithm
-CCNLR --------------------- Constant Coefficient Nonhomogeneous Linear Recursion
-Update:
+    | PTFFP -------------------- Normal Polynomial to Descending Power
+Polynomial | FFPTP -------------------- Descending Power Polynomial to Normal
+Polynomial CCHLR ---------------------- Constant Coefficient Homogeneous Linear
+Recursion | __calc ------------------- Polynomial Fast Pow | Fiduccia
+----------------- Fiduccia Algorithm CCNLR --------------------- Constant
+Coefficient Nonhomogeneous Linear Recursion Update:
 
 
 
@@ -91,41 +91,45 @@ Update:
 using namespace std;
 namespace IO {
     const int __SIZE = (1 << 21) + 1;
-    char ibuf[__SIZE], *iS, *iT, obuf[__SIZE], *oS = obuf, *oT = oS + __SIZE - 1, _c, qu[55];
+    char ibuf[__SIZE], *iS, *iT, obuf[__SIZE],
+        *oS = obuf, *oT = oS + __SIZE - 1, _c, qu[55];
     int __f, qr, _eof;
-#define Gc() (iS == iT ? (iT = (iS = ibuf) + fread(ibuf, 1, __SIZE, stdin), (iS == iT ? EOF : *iS++)) : *iS++)
+#define Gc()                                                                   \
+    (iS == iT ? (iT = (iS = ibuf) + fread(ibuf, 1, __SIZE, stdin),             \
+                 (iS == iT ? EOF : *iS++))                                     \
+              : *iS++)
 
-    inline void flush() {
+    void flush() {
         fwrite(obuf, 1, oS - obuf, stdout);
         oS = obuf;
     }
 
-    inline void gc(char &x) {
+    void gc(char &x) {
         x = Gc();
     }
 
-    inline void pc(char x) {
+    void pc(char x) {
         *oS++ = x;
         if (oS == oT)
             flush();
     }
 
-    inline void pstr(const char *s) {
+    void pstr(const char *s) {
         int __len = strlen(s);
         for (__f = 0; __f < __len; ++__f)
             pc(s[__f]);
     }
 
-    inline void gstr(char *s) {
+    void gstr(char *s) {
         for (_c = Gc(); _c < 32 || _c > 126 || _c == ' ';)
             _c = Gc();
-        for (; _c > 31 && _c < 127 && _c != ' ' && _c != '\n' && _c != '\r'; ++s, _c = Gc())
+        for (; _c > 31 && _c < 127 && _c != ' ' && _c != '\n' && _c != '\r';
+             ++s, _c = Gc())
             *s = _c;
         *s = 0;
     }
 
-    template <class I>
-    inline bool read(I &x) {
+    template <class I> bool read(I &x) {
         _eof = 0;
         for (__f = 1, _c = Gc(); (_c < '0' || _c > '9') && !_eof; _c = Gc()) {
             if (_c == '-')
@@ -139,8 +143,7 @@ namespace IO {
         return !_eof;
     }
 
-    template <class I>
-    inline void print(I x) {
+    template <class I> void print(I x) {
         if (!x)
             pc('0');
         if (x < 0) {
@@ -157,7 +160,7 @@ namespace IO {
     struct Flusher_ {
         ~Flusher_() { flush(); }
     } io_flusher_;
-}
+} // namespace IO
 using IO::gc;
 using IO::gstr;
 using IO::pc;
@@ -166,14 +169,15 @@ using IO::pstr;
 using IO::read;
 
 namespace CONSTS {
-    const constexpr int P = 998244353, Y = 3, I = 332748118, B = (P + 1) >> 1, N = 600005, _I_ = 86583718;
+    const constexpr int P = 998244353, Y = 3, I = 332748118, B = (P + 1) >> 1,
+                        N = 600005, _I_ = 86583718;
 }
 using namespace CONSTS;
 
 namespace Pre {
     int gp[N], igp[N], ny[N], inv[N];
 
-    inline int Q(int a, int b) {
+    int Q(int a, int b) {
         int res = 1;
         while (b) {
             if (b & 1)
@@ -183,61 +187,54 @@ namespace Pre {
         return res % P;
     }
 
-    inline int Inv(int __x) {
+    int Inv(int __x) {
         return Q(__x, P - 2);
     }
 
-    inline void initYG() {
+    void initYG() {
         int tmpg = Q(Y, (P - 1) / (1 << 19)), tmpig = Q(I, (P - 1) / (1 << 19));
         gp[0] = igp[0] = 1;
         for (int i = 1; i <= (1 << 19); ++i) {
             gp[i] = 1ll * tmpg * gp[i - 1] % P;
             igp[i] = 1ll * tmpig * igp[i - 1] % P;
-            
         }
         ny[1] = 1;
         for (int i = 2; i <= 500010; ++i)
             ny[i] = 1ll * (P - P / i) * ny[P % i] % P;
     }
-}
+} // namespace Pre
 
 namespace Pint {
-    template <class T>
-    inline T addt(T &__a, T __b) {
+    template <class T> T addt(T &__a, T __b) {
         if ((__a += __b) >= P)
             __a -= P;
         return __a;
     }
 
-    template <class T>
-    inline T delt(T &__a, T __b) {
+    template <class T> T delt(T &__a, T __b) {
         if ((__a -= __b) < 0)
             __a += P;
         return __a;
     }
 
-    template <class T>
-    inline T add(T __a, T __b) {
+    template <class T> T add(T __a, T __b) {
         return addt(__a, __b);
     }
 
-    template <class T>
-    inline T del(T __a, T __b) {
+    template <class T> T del(T __a, T __b) {
         return delt(__a, __b);
     }
 
-    template <class T>
-    inline T tp(T x) {
+    template <class T> T tp(T x) {
         while (x < 0)
             x += P;
         return x;
     }
 
-    template <class T>
-    inline T Vmax(T a, T b) {
+    template <class T> T Vmax(T a, T b) {
         return ((a > b) ? a : b);
     }
-}
+} // namespace Pint
 
 using namespace Pint;
 mt19937 rnd(time(0));
@@ -248,12 +245,14 @@ namespace Quad {
         int Re, Im;
         NTC operator*(NTC __A) const {
             NTC __res;
-            __res.Re = (1ll * Re * __A.Re % p + 1ll * ii * Im % p * __A.Im % p + p) % p;
+            __res.Re =
+                (1ll * Re * __A.Re % p + 1ll * ii * Im % p * __A.Im % p + p) %
+                p;
             __res.Im = (1ll * Re * __A.Im % p + 1ll * Im * __A.Re % p + p) % p;
             return __res;
         }
     };
-    inline int Q(int __a, int __b, int __p) {
+    int Q(int __a, int __b, int __p) {
         int __res = 1;
         while (__b) {
             if (__b & 1)
@@ -264,7 +263,7 @@ namespace Quad {
         return __res % __p;
     }
 
-    inline NTC q(NTC __a, int __b, int &__p) {
+    NTC q(NTC __a, int __b, int &__p) {
         NTC __res = {1, 0};
         while (__b) {
             if (__b & 1)
@@ -274,7 +273,7 @@ namespace Quad {
         }
         return __res;
     }
-    inline int Cipolla(int n, int p) {
+    int Cipolla(int n, int p) {
         p = 998244353;
         n %= p;
         if (Q(n, (p - 1) >> 1, p) == p - 1)
@@ -289,7 +288,7 @@ namespace Quad {
         NTC x = {a, 1};
         return (q(x, B, p).Re % p + p) % p;
     }
-    inline int work(int n, int p) {
+    int work(int n, int p) {
         if (!n)
             return 0;
         int u = Cipolla(n, p), v = p - u;
@@ -301,7 +300,7 @@ namespace Quad {
             swap(u, v);
         return u;
     }
-}
+} // namespace Quad
 
 namespace POLY {
     int __Binary_reverse[2000005];
@@ -312,25 +311,25 @@ namespace POLY {
         void ppri(poly __f, int __n);
         void pin(ffp &f, int __n);
         void ppri(ffp __f, int __n);
-    }
+    } // namespace PIO
 
     namespace UCPF {
-        inline poly Ln(poly __f);
-        inline poly Exp(poly __f);
-        inline poly Sqrt(poly __f);
-        inline poly Sin(poly __f);
-        inline poly Cos(poly __f);
-        inline poly Tan(poly __f);
-        inline poly ArcSin(poly __f);
-        inline poly ArcCos(poly __f);
-        inline poly ArcTan(poly __f);
-        inline poly AND(poly __f, poly __g);
-        inline poly OR(poly __f, poly __g);
-        inline poly XOR(poly __f, poly __g);
-        inline poly Subset(poly __f, poly __g);
-        inline poly Pow_For_Luogu(poly __f, int __k1, int __k2, int kk);
-        inline poly Trans(poly __f, int c);
-    }
+        poly Ln(poly __f);
+        poly Exp(poly __f);
+        poly Sqrt(poly __f);
+        poly Sin(poly __f);
+        poly Cos(poly __f);
+        poly Tan(poly __f);
+        poly ArcSin(poly __f);
+        poly ArcCos(poly __f);
+        poly ArcTan(poly __f);
+        poly AND(poly __f, poly __g);
+        poly OR(poly __f, poly __g);
+        poly XOR(poly __f, poly __g);
+        poly Subset(poly __f, poly __g);
+        poly Pow_For_Luogu(poly __f, int __k1, int __k2, int kk);
+        poly Trans(poly __f, int c);
+    } // namespace UCPF
     using namespace UCPF;
     using namespace PIO;
 
@@ -338,45 +337,33 @@ namespace POLY {
     public:
         int n;
         vector<int> a;
-        poly() {
-            n = 0;
-        }
-        poly(int __n) {
-            resize(__n);
-        }
+        poly() { n = 0; }
+        poly(int __n) { resize(__n); }
 
-        int &operator[](int id) {
-            return a[id];
-        }
+        int &operator[](int id) { return a[id]; }
 
-        inline void resize(int __lim_siz) {
+        void resize(int __lim_siz) {
             a.resize(__lim_siz);
             a.shrink_to_fit();
             n = __lim_siz;
         }
 
-        inline void shrink() {
-            resize(n);
-        }
+        void shrink() { resize(n); }
 
-        vector<int>::iterator begin() {
-            return a.begin();
-        }
+        vector<int>::iterator begin() { return a.begin(); }
 
-        vector<int>::iterator end() {
-            return a.end();
-        }
+        vector<int>::iterator end() { return a.end(); }
 
-        inline void rev(vector<int>::iterator __st, vector<int>::iterator __en) {
+        void rev(vector<int>::iterator __st, vector<int>::iterator __en) {
             reverse(__st, __en);
         }
 
-        inline void pb(int x) {
+        void pb(int x) {
             a.push_back(x);
             ++n;
         }
 
-        inline void tp(int __n) {
+        void tp(int __n) {
             for (int i = 0; i < __n; ++i)
                 a[i] = Pint::tp(a[i]);
         }
@@ -385,7 +372,8 @@ namespace POLY {
             int nm = Vmax(n, __tmpa.n);
             resize(nm);
             for (int i = 0; i < nm; ++i)
-                a[i] = add((i < __tmpa.n) ? __tmpa.a[i] : 0, (i < n) ? a[i] : 0);
+                a[i] =
+                    add((i < __tmpa.n) ? __tmpa.a[i] : 0, (i < n) ? a[i] : 0);
             return *this;
         }
 
@@ -393,7 +381,8 @@ namespace POLY {
             int nm = Vmax(n, __tmpa.n);
             resize(nm);
             for (int i = 0; i < nm; ++i)
-                a[i] = del((i < n) ? a[i] : 0, (i < __tmpa.n) ? __tmpa.a[i] : 0);
+                a[i] =
+                    del((i < n) ? a[i] : 0, (i < __tmpa.n) ? __tmpa.a[i] : 0);
             return *this;
         }
 
@@ -407,7 +396,7 @@ namespace POLY {
             return (__tmp -= __tmpa);
         }
 
-        inline void NTT(bool __) {
+        void NTT(bool __) {
             for (int i = 0; i < n; ++i) {
                 if (i < __Binary_reverse[i])
                     swap(a[i], a[__Binary_reverse[i]]);
@@ -415,7 +404,9 @@ namespace POLY {
             for (int r = 1, base = (1 << 18); r < n; r <<= 1, base >>= 1) {
                 for (int i = 0; i < n; i += (r << 1)) {
                     for (int j = 0, bj = 0; j < r; ++j, bj += base) {
-                        int __I = a[j | i], __II = 1ll * (__ ? Pre::gp[bj] : Pre::igp[bj]) * a[j | r | i] % P;
+                        int __I = a[j | i],
+                            __II = 1ll * (__ ? Pre::gp[bj] : Pre::igp[bj]) *
+                                   a[j | r | i] % P;
                         a[j | i] = add(__I, __II);
                         a[j | r | i] = del(__I, __II);
                     }
@@ -428,40 +419,48 @@ namespace POLY {
             }
             tp(n);
         }
-        inline void Fwtand(int __) {
+        void Fwtand(int __) {
             if (!__)
                 __ = -1;
             for (int x = 2; x <= n; x <<= 1) {
                 int k = x >> 1;
                 for (int i = 0; i < n; i += x) {
                     for (int j = 0; j < k; ++j)
-                        a[i + j] = 1ll * add(1ll * a[i + j], 1ll * a[i + j + k] * __ % P) % P;
+                        a[i + j] =
+                            1ll *
+                            add(1ll * a[i + j], 1ll * a[i + j + k] * __ % P) %
+                            P;
                 }
             }
         }
-        inline void Fmtor(int __) {
+        void Fmtor(int __) {
             if (!__)
                 __ = -1;
-            int lgn=__lg(n);
-            for (int i = 0; i < lgn; i++){
-                for (int j = 0; j < n; j++){
-                    if((j >> i) & 1)
-                        a[j] = 1ll * add(1ll * a[j], 1ll * a[j ^ (1 << i)] * __ % P) % P;
+            int lgn = __lg(n);
+            for (int i = 0; i < lgn; i++) {
+                for (int j = 0; j < n; j++) {
+                    if ((j >> i) & 1)
+                        a[j] = 1ll *
+                               add(1ll * a[j], 1ll * a[j ^ (1 << i)] * __ % P) %
+                               P;
                 }
             }
         }
-        inline void Fwtor(int __) {
+        void Fwtor(int __) {
             if (!__)
                 __ = -1;
             for (int x = 2; x <= n; x <<= 1) {
                 int k = x >> 1;
                 for (int i = 0; i < n; i += x) {
                     for (int j = 0; j < k; ++j)
-                        a[i + j + k] = 1ll * add(1ll * a[i + j + k], 1ll * a[i + j] * __ % P) % P;
+                        a[i + j + k] =
+                            1ll *
+                            add(1ll * a[i + j + k], 1ll * a[i + j] * __ % P) %
+                            P;
                 }
             }
         }
-        inline void Fwtxor(int __) {
+        void Fwtxor(int __) {
             if (!__)
                 __ = B;
             for (int x = 2; x <= n; x <<= 1) {
@@ -469,7 +468,8 @@ namespace POLY {
                 for (int i = 0; i < n; i += x) {
                     for (int j = 0; j < k; ++j) {
                         a[i + j] = add(a[i + j], a[i + j + k]);
-                        a[i + j + k] = (a[i + j] - (a[i + j + k] << 1) % P + P) % P;
+                        a[i + j + k] =
+                            (a[i + j] - (a[i + j + k] << 1) % P + P) % P;
                         a[i + j] = 1ll * __ * a[i + j] % P;
                         a[i + j + k] = 1ll * __ * a[i + j + k] % P;
                     }
@@ -485,7 +485,8 @@ namespace POLY {
                 __L++;
             }
             for (int i = 1; i < __len; ++i)
-                __Binary_reverse[i] = (__Binary_reverse[i >> 1] >> 1) | ((i & 1) << (__L - 1));
+                __Binary_reverse[i] =
+                    (__Binary_reverse[i >> 1] >> 1) | ((i & 1) << (__L - 1));
             resize(__len);
             __tmpmuly.resize(__len);
             NTT(1);
@@ -503,8 +504,7 @@ namespace POLY {
             return *this;
         }
 
-        template <class T>
-        poly operator*(const T &__tmpa) const {
+        template <class T> poly operator*(const T &__tmpa) const {
             poly ans = *this;
             return ans *= __tmpa;
         }
@@ -518,14 +518,16 @@ namespace POLY {
                 L++;
             }
             for (int i = 1; i < len; ++i)
-                __Binary_reverse[i] = (__Binary_reverse[i >> 1] >> 1) | ((i & 1) << (L - 1));
+                __Binary_reverse[i] =
+                    (__Binary_reverse[i >> 1] >> 1) | ((i & 1) << (L - 1));
             __tmpmulx.resize(len);
             __tmpmuly.resize(len);
             __tmpmulx.NTT(1);
             __tmpmuly.NTT(1);
             poly res(len);
             for (long long i = 0; i < len; ++i)
-                res[i] = 1ll * ((1ll * __tmpmulx[i] * __tmpmuly[i] % P) + P) % P;
+                res[i] =
+                    1ll * ((1ll * __tmpmulx[i] * __tmpmuly[i] % P) + P) % P;
             res.NTT(0);
             poly ans(nnn - mmm + 1);
             for (int __i = mmm - 1; __i < nnn; __i++)
@@ -543,7 +545,8 @@ namespace POLY {
             while (dep < (n << 1)) {
                 ++L;
                 for (int i = 1; i < (dep << 1); ++i)
-                    __Binary_reverse[i] = (__Binary_reverse[i >> 1] >> 1) | ((i & 1) << (L - 1));
+                    __Binary_reverse[i] =
+                        (__Binary_reverse[i >> 1] >> 1) | ((i & 1) << (L - 1));
                 __tmpf.a.clear();
                 __tmpf = *this;
                 __tmpf.resize(dep);
@@ -554,7 +557,9 @@ namespace POLY {
                 __tmpf.NTT(1);
                 ans.NTT(1);
                 for (int i = 0; i < (dep << 1); ++i)
-                    ans[i] = 1ll * ans[i] * Pint::tp(2ll - 1ll * __tmpf[i] * ans[i] % P + P) % P;
+                    ans[i] = 1ll * ans[i] *
+                             Pint::tp(2ll - 1ll * __tmpf[i] * ans[i] % P + P) %
+                             P;
                 ans.NTT(0);
                 ans.resize(dep << 1);
                 ans.tp(ans.n);
@@ -581,8 +586,7 @@ namespace POLY {
             return *this;
         }
 
-        template <class T>
-        poly operator/(T &g) const {
+        template <class T> poly operator/(T &g) const {
             poly res = *this;
             return res /= g;
         }
@@ -654,37 +658,29 @@ namespace POLY {
     public:
         int n;
         vector<int> a;
-        ffp() {
-            n = 0;
-        }
-        ffp(int __n) {
-            resize(__n);
-        }
+        ffp() { n = 0; }
+        ffp(int __n) { resize(__n); }
 
-        int &operator[](int id) {
-            return a[id];
-        }
+        int &operator[](int id) { return a[id]; }
 
-        inline void resize(int __lim_siz) {
+        void resize(int __lim_siz) {
             a.resize(__lim_siz);
             a.shrink_to_fit();
             n = __lim_siz;
         }
 
-        inline void shrink() {
-            resize(n);
-        }
+        void shrink() { resize(n); }
 
-        inline void rev(vector<int>::iterator __st, vector<int>::iterator __en) {
+        void rev(vector<int>::iterator __st, vector<int>::iterator __en) {
             reverse(__st, __en);
         }
 
-        inline void pb(int x) {
+        void pb(int x) {
             a.push_back(x);
             ++n;
         }
 
-        inline void tp(int __n) {
+        void tp(int __n) {
             for (int i = 0; i < __n; ++i)
                 a[i] = Pint::tp(a[i]);
         }
@@ -693,7 +689,8 @@ namespace POLY {
             int nm = Vmax(n, __tmpa.n);
             resize(nm);
             for (int i = 0; i < nm; ++i)
-                a[i] = add((i < __tmpa.n) ? __tmpa.a[i] : 0, (i < n) ? a[i] : 0);
+                a[i] =
+                    add((i < __tmpa.n) ? __tmpa.a[i] : 0, (i < n) ? a[i] : 0);
             return *this;
         }
 
@@ -701,7 +698,8 @@ namespace POLY {
             int nm = Vmax(n, __tmpa.n);
             resize(nm);
             for (int i = 0; i < nm; ++i)
-                a[i] = del((i < n) ? a[i] : 0, (i < __tmpa.n) ? __tmpa.a[i] : 0);
+                a[i] =
+                    del((i < n) ? a[i] : 0, (i < __tmpa.n) ? __tmpa.a[i] : 0);
             return *this;
         }
 
@@ -715,17 +713,17 @@ namespace POLY {
             return (__tmp -= __tmpa);
         }
     };
-}
+} // namespace POLY
 
 using namespace POLY;
-inline poly Dx(poly &__f) {
+poly Dx(poly &__f) {
     poly ans;
     for (int i = 1; i < __f.n; ++i)
         ans.pb(1ll * i * __f[i] % P);
     return ans;
 }
 
-inline poly Integ(poly &__f) {
+poly Integ(poly &__f) {
     poly ans;
     ans.pb(0);
     for (int i = 0; i < __f.n; ++i)
@@ -733,7 +731,7 @@ inline poly Integ(poly &__f) {
     return ans;
 }
 
-inline poly UCPF::Ln(poly __F) {
+poly UCPF::Ln(poly __F) {
     poly dF = Dx(__F);
     dF *= ~__F;
     dF.resize(__F.n);
@@ -742,7 +740,7 @@ inline poly UCPF::Ln(poly __F) {
     return dF;
 }
 
-inline poly UCPF::Exp(poly __f) {
+poly UCPF::Exp(poly __f) {
     poly ans;
     int dep = 1;
     ans.pb(1);
@@ -760,7 +758,7 @@ inline poly UCPF::Exp(poly __f) {
     return ans;
 }
 
-inline poly UCPF::Sqrt(poly __f) {
+poly UCPF::Sqrt(poly __f) {
     int tmp = __f[0];
     __f *= Pre::Inv(__f[0]);
     __f = Ln(__f);
@@ -771,19 +769,19 @@ inline poly UCPF::Sqrt(poly __f) {
     return __f;
 }
 
-inline poly UCPF::Sin(poly __f) {
+poly UCPF::Sin(poly __f) {
     return (Exp(__f * _I_) - Exp(__f * (P - _I_))) * B * Pre::Inv(_I_);
 }
 
-inline poly UCPF::Cos(poly __f) {
+poly UCPF::Cos(poly __f) {
     return (Exp(__f * _I_) + Exp(__f * (P - _I_))) * B;
 }
 
-inline poly UCPF::Tan(poly __f) {
+poly UCPF::Tan(poly __f) {
     return Sin(__f) * ~Cos(__f);
 }
 
-inline poly UCPF::ArcSin(poly __f) {
+poly UCPF::ArcSin(poly __f) {
     poly __tmp = __f;
     int __n = __f.n;
     __f = __f * __f;
@@ -798,11 +796,11 @@ inline poly UCPF::ArcSin(poly __f) {
     return __f;
 }
 
-inline poly UCPF::ArcCos(poly __f) {
+poly UCPF::ArcCos(poly __f) {
     return ArcSin(__f) * (P - 1);
 }
 
-inline poly UCPF::ArcTan(poly __f) {
+poly UCPF::ArcTan(poly __f) {
     poly __tmp = __f;
     int __n = __f.n;
     __f = __f * __f;
@@ -815,7 +813,7 @@ inline poly UCPF::ArcTan(poly __f) {
     return __f;
 }
 
-inline poly UCPF::AND(poly __f, poly __g) {
+poly UCPF::AND(poly __f, poly __g) {
     __f.Fwtand(1);
     __g.Fwtand(1);
     for (int i = 0; i < __f.n; ++i)
@@ -825,7 +823,7 @@ inline poly UCPF::AND(poly __f, poly __g) {
     return __f;
 }
 
-inline poly UCPF::OR(poly __f, poly __g) {
+poly UCPF::OR(poly __f, poly __g) {
     __f.Fwtor(1);
     __g.Fwtor(1);
     for (int i = 0; i < __f.n; ++i)
@@ -835,7 +833,7 @@ inline poly UCPF::OR(poly __f, poly __g) {
     return __f;
 }
 
-inline poly UCPF::XOR(poly __f, poly __g) {
+poly UCPF::XOR(poly __f, poly __g) {
     __f.Fwtxor(1);
     __g.Fwtxor(1);
     for (int i = 0; i < __f.n; ++i)
@@ -845,38 +843,35 @@ inline poly UCPF::XOR(poly __f, poly __g) {
     return __f;
 }
 
-inline poly UCPF::Subset(poly __f, poly __g) {
+poly UCPF::Subset(poly __f, poly __g) {
     int lgn = __lg(__f.n);
-    vector<poly> __F(lgn+1), __G(lgn+1), __H(lgn+1);
-    for(int i = 0; i <= lgn; i++){
+    vector<poly> __F(lgn + 1), __G(lgn + 1), __H(lgn + 1);
+    for (int i = 0; i <= lgn; i++) {
         __F[i].resize(__f.n);
         __G[i].resize(__f.n);
         __H[i].resize(__f.n);
     }
-    for(int i = 0; i < __f.n; i++)
+    for (int i = 0; i < __f.n; i++)
         __F[__builtin_popcount(i)][i] = __f[i];
-    for(int i = 0; i < __f.n; i++)
+    for (int i = 0; i < __f.n; i++)
         __G[__builtin_popcount(i)][i] = __g[i];
-    for(int i = 0; i <= lgn; i++){
+    for (int i = 0; i <= lgn; i++) {
         __F[i].Fwtor(1);
         __G[i].Fwtor(1);
     }
-    for(int i = 0; i <= lgn; i++){
-        for(int k = 0; k <= i; k++){
-            for(int S = 0; S < __f.n; S++){
-                __H[i][S] = add(1ll * __H[i][S], 1ll * __F[k][S] * __G[i - k][S] % P) % P;  
-            }
-        }
-    }
-    for(int i = 0; i <= lgn; i++)
+    for (int i = 0; i <= lgn; i++)
+        for (int k = 0; k <= i; k++)
+            for (int S = 0; S < __f.n; S++)
+                __H[i][S] = add(1ll * __H[i][S], 1ll * __F[k][S] * __G[i - k][S] % P) % P;
+    for (int i = 0; i <= lgn; i++)
         __H[i].Fwtor(0);
     poly ans;
-    for(int i = 0; i < __f.n; i++)
+    for (int i = 0; i < __f.n; i++)
         ans.pb((__H[__builtin_popcount(i)][i] % P + P) % P);
     return ans;
 }
 
-inline poly UCPF::Pow_For_Luogu(poly __f, int __k1, int __k2, int kk) {
+poly UCPF::Pow_For_Luogu(poly __f, int __k1, int __k2, int kk) {
     int __fir;
     for (int i = 0; i < __f.n; ++i) {
         if (__f.a[i]) {
@@ -899,10 +894,9 @@ inline poly UCPF::Pow_For_Luogu(poly __f, int __k1, int __k2, int kk) {
     __f <<= (__fir * __k2);
     return __f;
 }
-
 #ifdef TRANS
 int f[N];
-inline poly UCPF::Trans(poly __f, int c) {
+poly UCPF::Trans(poly __f, int c) {
     poly __g(__f.n), __h(__f.n);
     f[0] = 1;
     for (int i = 1; i < __f.n; ++i)
@@ -986,7 +980,7 @@ namespace Multipoint_Evel {
         multipoint_evel(mid + 1, r, p << 1 | 1, r2);
     }
 
-    inline void PMPE(int *val, poly __f, int mm, int *ans) {
+    void PMPE(int *val, poly __f, int mm, int *ans) {
         int con = __f[0];
         int lm = mm, nn = __f.n;
         if (nn <= mm - 1)
@@ -1002,7 +996,7 @@ namespace Multipoint_Evel {
         for (int i = 1; i <= lm; i++)
             ans[i] = ((1ll * val[i] * an[i] % P + con) % P + P) % P;
     }
-}
+} // namespace Multipoint_Evel
 using Multipoint_Evel::PMPE;
 #endif
 #ifdef FPI
@@ -1032,7 +1026,7 @@ namespace Fast_Interpolation {
         ret[p] = ret[p << 1] * q[p << 1 | 1] + ret[p << 1 | 1] * q[p << 1];
     }
 
-    inline poly PFI(int *x, int *y, int __n) {
+    poly PFI(int *x, int *y, int __n) {
         build1(1, __n, 1, x);
         poly F = Dx(q[1]);
         int con = F[0];
@@ -1045,22 +1039,28 @@ namespace Fast_Interpolation {
         tmp.resize(__n);
         Multipoint_Evel::multipoint_evel(1, __n, 1, tmp);
         for (int i = 1; i <= __n; ++i)
-            a[i] = 1ll * y[i] * Pre::Inv(((1ll * x[i] * Multipoint_Evel::an[i] % P + con) % P + P) % P) % P;
+            a[i] =
+                1ll * y[i] *
+                Pre::Inv(
+                    ((1ll * x[i] * Multipoint_Evel::an[i] % P + con) % P + P) %
+                    P) %
+                P;
         Inv_evel(1, __n, 1);
         return ret[1];
     }
-}
+} // namespace Fast_Interpolation
 using Fast_Interpolation::PFI;
 
 #endif
 
 namespace Chirp_Z {
-    inline int Ci2(int &i) {
+    int Ci2(int &i) {
         long long k = 1ll * i * (i - 1) / 2;
         k %= (P - 1);
         return k;
     }
-    inline poly Chirp_Z(poly __f, int c, int m) { // You can't pass P6800 by this code,because this PolyBoard is limit at 100000
+    poly Chirp_Z(poly __f, int c, int m) {
+        // You can't pass P6800 by this code, turn N into 1e6
         poly res;
         int __n = __f.n;
         poly R(__n + m), G(__n + m);
@@ -1071,16 +1071,17 @@ namespace Chirp_Z {
         }
         poly ans = R * G;
         for (int i = 0; i < m; i++)
-            res.pb(1ll * ans[__n + m - 2 - i] * Pre::Q(c, (P - 1ll - Ci2(i)) % P) % P);
+            res.pb(1ll * ans[__n + m - 2 - i] *
+                   Pre::Q(c, (P - 1ll - Ci2(i)) % P) % P);
         return res;
     }
-}
+} // namespace Chirp_Z
 
 #ifdef STIRLING
-
 namespace Stirling {
-    // In fact, if you want to pass the problems in luogu,you have to change the modulo.
-    inline poly row(int __n) {
+    // In fact, if you want to pass the problems in luogu,you have to change the
+    // modulo.
+    poly row(int __n) {
         poly f(__n + 1), _f(__n + 1);
         f[0] = _f[0] = 1;
         for (int i = 1; i <= __n; i++) {
@@ -1110,7 +1111,7 @@ namespace Stirling {
         t[p] = t[p << 1] * t[p << 1 | 1];
     }
 
-    inline poly column(int __k, int __n) {
+    poly column(int __k, int __n) {
         poly ans;
         if (__k > __n) {
             ans.resize(__n + 1);
@@ -1122,12 +1123,12 @@ namespace Stirling {
         ans.resize(__n + 1);
         return ans;
     }
-}
+} // namespace Stirling
 
-namespace Staling {
+namespace Staling{
     int f[N];
 
-    inline poly row(int __n) {
+    poly row(int __n) {
         poly ans;
         if (__n == 1) {
             ans.pb(0);
@@ -1145,7 +1146,7 @@ namespace Staling {
         }
     }
 
-    inline poly column(int __k, int __n) {
+    poly column(int __k, int __n) {
         poly __f;
         __f.pb(0);
         f[0] = 1;
@@ -1160,7 +1161,7 @@ namespace Staling {
             __f[i] = 1ll * __f[i] * f[i] % P;
         return __f;
     }
-}
+} // namespace Staling
 
 #endif
 
@@ -1188,7 +1189,7 @@ namespace FFP {
         ans[p] = ans[p << 1] + t[p << 1] * ans[p << 1 | 1];
     }
 
-    inline ffp PTFFP(poly __f) {
+    ffp PTFFP(poly __f) {
         Dev_Mul(0, __f.n - 1, 1, __f);
         ffp __res;
         for (int i = 0; i < ans[1].n; ++i)
@@ -1197,7 +1198,7 @@ namespace FFP {
     }
 
 #endif
-    inline poly FFPTP(ffp ___f) {
+    poly FFPTP(ffp ___f) {
         poly __f;
         for (int i = 0; i < ___f.n; ++i)
             __f.pb(___f[i]);
@@ -1217,7 +1218,7 @@ namespace FFP {
 
         return __g;
     }
-}
+} // namespace FFP
 #endif
 
 namespace CCHLR {
@@ -1285,12 +1286,12 @@ namespace CCHLR {
         res.resize(k);
         return Bostan_Mori(res, gamma, n);
     }
-}
+} // namespace CCHLR
 using CCHLR::Bostan_Mori;
 using CCHLR::Bostan_Mori_CCHLR;
 using CCHLR::Fiduccia;
 
-//#define CCNHLR CCNHLR
+// #define CCNHLR CCNHLR
 #ifdef CCNHLR
 namespace CCNHLR {
     poly gamma;
@@ -1324,7 +1325,7 @@ namespace CCNHLR {
         }
         return res;
     }
-    inline int Bostam_Mori_CCNHLR(int *c, int *a, int k, int n, poly p) {// Very Slow
+    int Bostam_Mori_CCNHLR(int *c, int *a, int k, int n, poly p) { // Very Slow
         gamma.pb(1);
         for (int i = 1; i <= k; ++i)
             gamma.pb(((P - c[i]) % P + P) % P);
@@ -1334,11 +1335,11 @@ namespace CCNHLR {
         __tmp2.pb(0);
         for (int i = 1; i <= k; i++)
             __tmp2.pb(c[i]);
-        poly __p = __tmp * __tmp2;
+       ￼ poly __p = __tmp * __tmp2;
         __p.resize(k);
         for (int i = 0; i < k; i++) {
             __p[i] = P - __p[i];
-            __p[i] =(__p[i] + a[i]) % P;
+            __p[i] = (__p[i] + a[i]) % P;
         }
         __p.resize(k + p.n + 1);
         for (int i = 1; i <= p.n + 1; i++)
@@ -1363,19 +1364,19 @@ namespace CCNHLR {
         }
         return tp(ans);
     }
-}
+} // namespace CCNHLR
 using CCNHLR::Bostam_Mori_CCNHLR;
 #endif
 
-int n;
-poly f,g;
+int n,m;
+poly ff, g;
 
-inline void work() {
+void work() {
     read(n);
-    n=(1<<n);
-    pin(f,n);
-    pin(g,n);
-    ppri(Subset(f,g),n);
+    read(m);
+    pin(ff, n+1);
+    pin(g,m+1);
+    ppri(ff*g, n+m+1);
 }
 
 signed main() {
