@@ -541,6 +541,8 @@ NamespaceIndentation: All, AccessModifierOffset: -4, FixNamespaceComments: false
 
 以后新开 2.x 文件，**第一行写 `#include "1_17_2.cpp"`，其余照旧**（`work()` / `main()` 自己写，不会和 1.x 的那份冲突）。被测文件（例如自测程序）同样可以 `#include "2_1_1.cpp"` 后自己写 `main()`。
 
+> **注意版本对应**：这层守卫是 2.x 改造时才加的。`1.17.2` 这个 **tag / release 页面**里的 `1_17_2.cpp` 还是改造前的版本（末尾直接就有 `main`），拿它去 include 会报 `'int main()' 重定义`。要 include 复用，请用 **main 分支**上的 `1_17_2.cpp`：`git show main:1_17_2.cpp > 1_17_2.cpp`。
+
 ### 7.2 接口
 
 ```cpp
