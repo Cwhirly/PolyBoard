@@ -152,6 +152,12 @@ gh release create 1.17.2 --title "1.17.2" --notes "集合幂级数 sps 类；非
 ```
 
 `gh release create` 会自动用同名 tag（没有就新建），生成一个带说明和源码包的页面。
+本仓库的约定是**每个版本一个 release**（1.10.0 起都有）；给老版本补 release 时加 `--latest=false`，否则 GitHub 会把刚补的那个当成 "Latest"：
+
+```bash
+gh release create 1.15.0 --title 1.15.0 --notes-file notes.md --latest=false   # 补历史版本
+gh release create 1.18.0 --title 1.18.0 --notes "…"                            # 发新版（自动成为 Latest）
+```
 
 ---
 
