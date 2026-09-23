@@ -1317,6 +1317,8 @@ namespace CCNHLR {
 
 using CCNHLR::Bostam_Mori_CCNHLR;
 
+#if __INCLUDE_LEVEL__ == 0
+
 int n, m, c;
 
 inline void work()
@@ -1325,8 +1327,7 @@ inline void work()
     read(n);
     read(c);
     read(m);
-    
-    f=pin(n);
+    f = pin(n);
     ppri(Chirp_Z(f, c, m), m);
 }
 
@@ -1337,3 +1338,5 @@ signed main() {
     work();
     return 0;
 }
+
+#endif
