@@ -16,7 +16,9 @@ namespace IO {
         oS = obuf;
     }
 
-    void gc(char &x) { x = Gc(); }
+    void gc(char &x) {
+        x = Gc();
+    }
 
     void pc(char x) {
         *oS++ = x;
@@ -78,6 +80,13 @@ using IO::print;
 using IO::pstr;
 using IO::read;
 
+#ifndef POLYBOARD_P
+#define POLYBOARD_P 998244353
+#endif
+#ifndef POLYBOARD_N
+#define POLYBOARD_N 600005
+#endif
+
 namespace CONSTS {
     constexpr int __qpow(int __a, int __b, int __p) {
         long long __r = 1, __x = __a;
@@ -102,9 +111,10 @@ namespace CONSTS {
     }
 
     constexpr int __root(int __p) {
-        for (int __g = 2;; ++__g)
+        for (int __g = 2; __g < 1000; ++__g)
             if (__isroot(__g, __p))
                 return __g;
+        return 2;
     }
 
     constexpr int __v2(int __x) {
@@ -121,12 +131,20 @@ namespace CONSTS {
         return __r;
     }
 
-    const constexpr int P = 998244353, N = 600005, Y = __root(P),
+    constexpr int __vmin(int __a, int __b) {
+        return __a < __b ? __a : __b;
+    }
+
+    const constexpr int P = POLYBOARD_P, N = POLYBOARD_N, Y = __root(P),
                         I = __qpow(Y, P - 2, P), B = (P + 1) >> 1,
-                        _I_ = __qpow(Y, (P - 1) / 4, P), LG = __lgup(2 * N - 1),
+                        _I_ = __qpow(Y, (P - 1) / 4, P),
+                        LG = __vmin(__lgup(2 * N - 1), __v2(P - 1)),
                         NL = 1 << LG;
+#if POLYBOARD_P == 998244353
     static_assert(P % 4 == 1, "P must be 1 mod 4");
-    static_assert(LG <= __v2(P - 1), "N is too large for P");
+    static_assert(__lgup(2 * N - 1) <= __v2(P - 1), "N is too large for P");
+    static_assert(__isroot(Y, P), "no primitive root");
+#endif
 }
 using namespace CONSTS;
 
@@ -143,7 +161,21 @@ namespace Pre {
         return __res % P;
     }
 
-    int Inv(int __x) { return Q(__x, P - 2); }
+    int Inv(int __x) {
+        __x %= P;
+        if (__x < 0)
+            __x += P;
+        long long __r0 = __x, __r1 = P, __s0 = 1, __s1 = 0;
+        while (__r1) {
+            long long __t = __r0 / __r1;
+            __r0 -= __t * __r1, swap(__r0, __r1);
+            __s0 -= __t * __s1, swap(__s0, __s1);
+        }
+        if (__r0 != 1)
+            return 0;
+        __s0 %= P;
+        return __s0 < 0 ? __s0 + P : __s0;
+    }
 
     void initYG() {
         int __off = 0;
@@ -181,9 +213,13 @@ namespace Pint {
         return __a;
     }
 
-    template <class T> T add(T __a, T __b) { return addt(__a, __b); }
+    template <class T> T add(T __a, T __b) {
+        return addt(__a, __b);
+    }
 
-    template <class T> T del(T __a, T __b) { return delt(__a, __b); }
+    template <class T> T del(T __a, T __b) {
+        return delt(__a, __b);
+    }
 
     template <class T> T tp(T x) {
         while (x < 0)
@@ -191,7 +227,9 @@ namespace Pint {
         return x;
     }
 
-    template <class T> T Vmax(T a, T b) { return ((a > b) ? a : b); }
+    template <class T> T Vmax(T a, T b) {
+        return ((a > b) ? a : b);
+    }
 }
 
 using namespace Pint;
@@ -258,7 +296,10 @@ namespace Quad {
         }
     };
 
-    int work(int __n) { return Solver().work(__n); }
+    int work(int __n) {
+        return Solver().work(__n);
+    }
+
 }
 
 namespace POLY {
@@ -786,9 +827,13 @@ poly UCPF::Sin(poly __f) {
            (1ll * B * Pre::Inv(_I_) % P);
 }
 
-poly UCPF::Cos(poly __f) { return (Exp(__f * _I_) + Exp(__f * (P - _I_))) * B; }
+poly UCPF::Cos(poly __f) {
+    return (Exp(__f * _I_) + Exp(__f * (P - _I_))) * B;
+}
 
-poly UCPF::Tan(poly __f) { return Sin(__f) * ~Cos(__f); }
+poly UCPF::Tan(poly __f) {
+    return Sin(__f) * ~Cos(__f);
+}
 
 poly UCPF::ArcSin(poly __f) {
     poly __t = __f;
@@ -806,7 +851,9 @@ poly UCPF::ArcSin(poly __f) {
     return __f;
 }
 
-poly UCPF::ArcCos(poly __f) { return ArcSin(__f) * (P - 1); }
+poly UCPF::ArcCos(poly __f) {
+    return ArcSin(__f) * (P - 1);
+}
 
 poly UCPF::ArcTan(poly __f) {
     poly __t = __f;
@@ -822,11 +869,17 @@ poly UCPF::ArcTan(poly __f) {
     return __f;
 }
 
-poly UCPF::AND(poly __f, poly __g) { return (sps(__f) & sps(__g)).to_poly(); }
+poly UCPF::AND(poly __f, poly __g) {
+    return (sps(__f) & sps(__g)).to_poly();
+}
 
-poly UCPF::OR(poly __f, poly __g) { return (sps(__f) | sps(__g)).to_poly(); }
+poly UCPF::OR(poly __f, poly __g) {
+    return (sps(__f) | sps(__g)).to_poly();
+}
 
-poly UCPF::XOR(poly __f, poly __g) { return (sps(__f) ^ sps(__g)).to_poly(); }
+poly UCPF::XOR(poly __f, poly __g) {
+    return (sps(__f) ^ sps(__g)).to_poly();
+}
 
 poly UCPF::Subset(poly __f, poly __g) {
     return (sps(__f) * sps(__g)).to_poly();
@@ -1018,7 +1071,9 @@ namespace Fast_Interpolation {
 using Fast_Interpolation::PFI;
 
 namespace ChirpZ {
-    int Ci2(int __i) { return 1ll * __i * (__i - 1) / 2 % (P - 1); }
+    int Ci2(int __i) {
+        return 1ll * __i * (__i - 1) / 2 % (P - 1);
+    }
 
     poly Chirp_Z(poly __f, int __c, int __m) {
         int __n = __f.size(), __l = __n + __m - 1;
@@ -1321,8 +1376,7 @@ using CCNHLR::Bostam_Mori_CCNHLR;
 
 int n, m, c;
 
-inline void work()
-{
+inline void work() {
     poly f;
     read(n);
     read(c);

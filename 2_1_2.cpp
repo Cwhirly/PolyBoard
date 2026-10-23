@@ -1,9 +1,35 @@
-#include "1_17_2.cpp"
+#include "1_18_0.cpp"
 
-namespace POLY {
+namespace MATRIX {
     class matrix {
         vector<vector<int>> a;
         int n, m;
+
+        int __rref(int __lim) {
+            int __r = 1;
+            for (int k = 1; k <= __lim && __r <= n; ++k) {
+                int __p = 0, __iv = 0;
+                for (int i = __r; i <= n; ++i)
+                    if (a[i][k] && (__iv = Pre::Inv(a[i][k]))) {
+                        __p = i;
+                        break;
+                    }
+                if (!__p)
+                    continue;
+                swap(a[__r], a[__p]);
+                for (int j = k; j <= m; ++j)
+                    a[__r][j] = 1ll * a[__r][j] * __iv % P;
+                for (int i = 1; i <= n; ++i) {
+                    if (i == __r || !a[i][k])
+                        continue;
+                    int __x = a[i][k];
+                    for (int j = k; j <= m; ++j)
+                        a[i][j] = (a[i][j] + 1ll * __x * (P - a[__r][j])) % P;
+                }
+                ++__r;
+            }
+            return __r - 1;
+        }
 
     public:
         matrix() { n = m = 0; }
@@ -83,49 +109,46 @@ namespace POLY {
             return __res *= __t;
         }
 
-        void gauss() {
-            for (int k = 1; k <= n; ++k) {
-                if (!a[k][k]) {
-                    int __p = 0;
-                    for (int i = k + 1; i <= n; ++i)
-                        if (a[i][k]) {
-                            __p = i;
-                            break;
-                        }
-                    if (!__p)
-                        continue;
-                    swap(a[k], a[__p]);
-                }
-                int __iv = Pre::Inv(a[k][k]);
-                for (int j = k; j <= m; ++j)
-                    a[k][j] = 1ll * a[k][j] * __iv % P;
-                for (int i = 1; i <= n; ++i) {
-                    if (i == k || !a[i][k])
-                        continue;
-                    int __x = a[i][k];
-                    for (int j = k; j <= m; ++j)
-                        a[i][j] = (a[i][j] + 1ll * __x * (P - a[k][j])) % P;
-                }
+        bool gauss() { return __rref(m) == n; }
+
+        bool inv(matrix &__res) const {
+            if (n != m) {
+                __res = matrix(n, m);
+                return false;
             }
+            matrix __t(n, m << 1);
+            for (int i = 1; i <= n; ++i) {
+                for (int j = 1; j <= m; ++j)
+                    __t.a[i][j] = a[i][j];
+                __t.a[i][m + i] = 1;
+            }
+            if (__t.__rref(n) != n) {
+                __res = matrix(n, m);
+                return false;
+            }
+            __res.resize(n, m);
+            for (int i = 1; i <= n; ++i)
+                for (int j = 1; j <= m; ++j)
+                    __res.a[i][j] = __t.a[i][m + j];
+            return true;
         }
 
         int det() const {
             matrix __t = *this;
             int __res = 1;
             for (int k = 1; k < n; ++k) {
-                if (!__t.a[k][k]) {
-                    int __p = 0;
-                    for (int i = k + 1; i <= n; ++i)
-                        if (__t.a[i][k]) {
-                            __p = i;
-                            break;
-                        }
-                    if (!__p)
-                        return 0;
+                int __p = 0, __iv = 0;
+                for (int i = k; i <= n; ++i)
+                    if (__t.a[i][k] && (__iv = Pre::Inv(__t.a[i][k]))) {
+                        __p = i;
+                        break;
+                    }
+                if (!__p)
+                    return 0;
+                if (__p != k) {
                     swap(__t.a[k], __t.a[__p]);
                     __res = P - __res;
                 }
-                int __iv = Pre::Inv(__t.a[k][k]);
                 for (int i = k + 1; i <= n; ++i) {
                     if (!__t.a[i][k])
                         continue;
@@ -140,33 +163,26 @@ namespace POLY {
         }
 
         matrix operator~() const {
-            matrix __t(n, m << 1);
-            for (int i = 1; i <= n; ++i) {
-                for (int j = 1; j <= m; ++j)
-                    __t.a[i][j] = a[i][j];
-                __t.a[i][m + i] = 1;
-            }
-            __t.gauss();
-            matrix __res(n, m);
-            for (int i = 1; i <= n; ++i)
-                for (int j = 1; j <= m; ++j)
-                    __res.a[i][j] = __t.a[i][m + j];
+            matrix __res;
+            if (!inv(__res))
+                __res = matrix(n, m);
             return __res;
         }
     };
 
-    namespace PIO {
-        void pin(matrix &__f, int __n, int __m) {
-            __f.resize(__n, __m);
+    namespace MIO {
+        matrix pin(int __n, int __m) {
+            matrix __f(__n, __m);
             for (int i = 1; i <= __n; ++i)
                 for (int j = 1; j <= __m; ++j)
                     read(__f(i, j));
+            return __f;
         }
 
         void ppri(const matrix &__f, int __n, int __m) {
             for (int i = 1; i <= __n; ++i) {
                 for (int j = 1; j <= __m; ++j) {
-                    print(__f(i, j));
+                    print((i <= __f.row() && j <= __f.col()) ? Pint::tp(__f(i, j)) : 0);
                     pc(' ');
                 }
                 pc('\n');
@@ -175,7 +191,6 @@ namespace POLY {
     }
 }
 
-using namespace POLY;
 
 #if __INCLUDE_LEVEL__ == 0
 
@@ -184,11 +199,13 @@ int n;
 inline void work()
 {
     read(n);
-    matrix f(n, n);
-    pin(f, n, n);
-    print(f.det());
-    pc('\n');
-    ppri(~f, n, n);
+    MATRIX::matrix f = MATRIX::MIO::pin(n, n), g;
+    if (!f.inv(g)) {
+        print(-1);
+        pc('\n');
+        return;
+    }
+    MATRIX::MIO::ppri(g, n, n);
 }
 
 signed main() {
