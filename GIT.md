@@ -7,26 +7,26 @@
 
 ## 0. 一句话流程
 
-> 新建版本文件 → `git add` → `git commit` → `git tag` → `git push` + `git push --tags`
+> 改 `poly.cpp` / `matrix.cpp` → `git add` → `git commit` → `git tag` → `git push` + `git push --tags`
 
-每个"发布"就是一个 **提交 + 一个 tag**。tag 名 = 文件名去掉下划线和 `.cpp`：`1_19_0.cpp` → `1.19.0`。
+每个“发布”就是一个 **提交 + 一个 tag**。`1.19.0` 起文件名固定为 `poly.cpp` / `matrix.cpp`，tag 名就是版本号：`git tag 1.19.0`。不再按文件名生成 tag，也不需要在每个版本复制/改名。
 
 ---
 
 ## 1. 每次写完一个新版本怎么做
 
-假设你刚写完 `1_19_0.cpp`：
+假设你刚改完 `poly.cpp`（这次准备发 `1.19.1`）：
 
 ```bash
 cd ~/Desktop/Codes/cpp/Templetes/PolyBoard
 
-git status                  # 先看一眼改了哪些文件（红色=没进版本库，绿色=已暂存）
+git status                  # 先看一眼改了哪些文件
 git diff                    # 看具体改了啥（可选）
 
-git add 1_19_0.cpp          # 把这个文件加入本次提交（只写文件名，别用 git add . ）
-git commit -m "release: 1.19.0 <一句话说明这次加了/改了什么>"
+git add poly.cpp matrix.cpp README.md CHANGELOG.md GIT.md
+git commit -m "release: 1.19.1 <一句话说明这次加了/改了什么>"
 
-git tag 1.18.0              # 给这个提交打个标签
+git tag 1.19.1
 
 git push                    # 推提交
 git push --tags             # 推标签（新标签必须单独推，push 不会带上）
@@ -34,23 +34,24 @@ git push --tags             # 推标签（新标签必须单独推，push 不会
 
 完事。刷新 GitHub 页面就能看到 tag。
 
-> 如果 `1_19_0.cpp` 是在 `1_18_0.cpp` 基础上复制改的，记得 `git add` 的只有新文件；
-> 老文件没动就不用管。README 如果也改了，一起 `git add README.md` 即可。
+> `poly.cpp` 和 `matrix.cpp` 是固定文件名，不要复制成 `1_19_1.cpp`。旧版本都在 tag 里，需要时 `git show <tag>:poly.cpp` 取。
+> 只改 poly 就只 `git add poly.cpp`；matrix 的 include 不用改。
 
-### 现在的工作区布局（1.18.0 / 2.1.2 起）
+### 现在的工作区布局（1.19.0 起）
 
 工作区**只留两份代码**，旧版本不再摆在目录里（需要时从 tag 取）：
 
-- `1_18_0.cpp`：不带矩阵的最新版
-- `2_1_2.cpp`：带矩阵的最新版，**第一行就是 `#include "1_18_0.cpp"`**
+- `poly.cpp`：不带矩阵的最新版
+- `matrix.cpp`：带矩阵的最新版，**第一行就是 `#include "poly.cpp"`**
 
 ```bash
-git show 1.16.0:1_16_0.cpp > /tmp/1_16_0.cpp    # 把任意旧版本导出到别处看
+git show 1.16.0:1_16_0.cpp > /tmp/1_16_0.cpp    # 1.19.0 以前的旧文件名
+git show 1.19.0:poly.cpp > /tmp/poly.cpp        # 1.19.0 起的固定文件名
 ```
 
-2.x 能直接复用 1.x，是因为 `1_18_0.cpp` 末尾的 `work()` / `main()` 包在 `#if __INCLUDE_LEVEL__ == 0` 里：直接编译时才会带上，被 `#include` 时自动跳过，包含者可以写自己的 `work()` / `main()`。**以后新开 2.x 文件，第一行照抄 `#include "1_18_0.cpp"` 就行。**
+2.x 能直接复用 1.x，是因为 `poly.cpp` 末尾的 `work()` / `main()` 包在 `#if __INCLUDE_LEVEL__ == 0` 里：直接编译时才会带上，被 `#include` 时自动跳过，包含者可以写自己的 `work()` / `main()`。**matrix.cpp 第一行照抄 `#include "poly.cpp"` 就行，以后不用再改。**
 
-> 这层守卫是在 2.1.1 的改造里才加的，所以 **`1.17.2` tag 里的那份文件没有它**（拿 tag 里的文件去 include 会报 `main` 重定义）。要用 include 复用，认准 **main 分支**上的 `1_18_0.cpp`；`git show 1.17.2:1_17_2.cpp` 取出来的那份只能单独编译。
+> 这层守卫是 2.1.1 的改造里才加的，所以 `1.17.2` tag 里的那份文件没有它；1.19.0 起 `poly.cpp` / `matrix.cpp` 都有。
 
 另外每次更新顺手改两处文档：
 
@@ -143,9 +144,11 @@ git push --tags                      # 推上去
 | 1.10.0 / 1.11.0 / 1.12.0 / 1.13.0 | `83cb613` | 从这一版起改名叫 `1_x_y.cpp`；四个文件是同一个提交加的，所以 tag 指向同一个提交 |
 | 1.14.0 / 1.15.0 / 1.15.1 / 1.15.2 | `6d55043` | 同上 |
 | 1.16.0 | `2daef72` | `1_16_0.cpp` 首次出现 |
-| 1.17.0 | `536f298` | 这个提交才把「子集反演」补进 `1_17_0.cpp`；同一个提交也把带矩阵的 `2_1_0.cpp` 加了进来（2.x 起工作区只留带矩阵的那一份，现在是 `2_1_2.cpp`；`2_1_0.cpp` 用 `git show 536f298:2_1_0.cpp` 取） |
+| 1.17.0 | `536f298` | 这个提交才把「子集反演」补进 `1_17_0.cpp`；同一个提交也把带矩阵的 `2_1_0.cpp` 加了进来（2.x 起工作区只留带矩阵的那一份，现在是 `matrix.cpp`；`2_1_0.cpp` 用 `git show 536f298:2_1_0.cpp` 取） |
 | 1.17.1 | `release: 1.17.1` 那个提交 | |
 | 1.17.2 | `release: 1.17.2` 那个提交 | |
+| 1.18.0 / 2.1.2 | `e0a4edb` | 1.18.0 模数/规模可注入；2.1.2 矩阵状态接口。这一版还是旧文件名 `1_18_0.cpp` / `2_1_2.cpp` |
+| 1.19.0 起 | 固定文件名 | `poly.cpp` / `matrix.cpp`；版本只由 tag 区分，不再按文件名生成 tag |
 
 > 一个提交里加了多个版本文件时，多个 tag 会指向同一个提交，这是正常的（文件内容都在，回退到那个 tag 也能拿到对应文件）。
 
@@ -153,12 +156,12 @@ git push --tags                      # 推上去
 
 ## 5. 编译产物不要进版本库
 
-`.gitignore` 已经忽略了 `*.exe`、`*.out`、`a.out`、`.vscode/`、`tempCodeRunnerFile.cpp` 以及本项目里两个没后缀的编译产物 `1_17_0`、`1_17_2`。
+`.gitignore` 已经忽略了 `*.exe`、`*.out`、`a.out`、`.vscode/`、`tempCodeRunnerFile.cpp` 以及本项目里没后缀的编译产物：旧名 `1_17_0`、`1_17_2`、`1_18_0`、`2_1_2`，以及固定名 `poly`、`matrix`。
 
 今后编译建议显式指定输出名，省得再往 `.gitignore` 里加名字：
 
 ```bash
-g++ 1_18_0.cpp -o main -std=c++17 -O2     # 或者 -o main.exe / -o a.out
+g++ poly.cpp -o main -std=c++17 -O2     # 或者 -o main.exe / -o a.out
 ```
 
 如果又有新的产物没被忽略（`git status` 里以 `??` 出现），要么删掉，要么把它加进 `.gitignore` 再提交一次。

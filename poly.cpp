@@ -86,6 +86,9 @@ using IO::read;
 #ifndef POLYBOARD_N
 #define POLYBOARD_N 600005
 #endif
+#ifndef POLYBOARD_ATN
+#define POLYBOARD_ATN 1
+#endif
 
 namespace CONSTS {
     constexpr int __qpow(int __a, int __b, int __p) {
@@ -135,11 +138,17 @@ namespace CONSTS {
         return __a < __b ? __a : __b;
     }
 
+    const constexpr bool ATN = POLYBOARD_ATN;
     const constexpr int P = POLYBOARD_P, N = POLYBOARD_N, Y = __root(P),
                         I = __qpow(Y, P - 2, P), B = (P + 1) >> 1,
                         _I_ = __qpow(Y, (P - 1) / 4, P),
-                        LG = __vmin(__lgup(2 * N - 1), __v2(P - 1)),
+                        LG = ATN ? __vmin(__lgup(2 * N - 1), __v2(P - 1))
+                                 : __lgup(2 * N - 1),
                         NL = 1 << LG;
+    static_assert(!ATN || (P % 4 == 1), "P must be 1 mod 4");
+    static_assert(!ATN || (__lgup(2 * N - 1) <= __v2(P - 1)),
+                  "N is too large for P");
+    static_assert(!ATN || __isroot(Y, P), "no primitive root");
 #if POLYBOARD_P == 998244353
     static_assert(P % 4 == 1, "P must be 1 mod 4");
     static_assert(__lgup(2 * N - 1) <= __v2(P - 1), "N is too large for P");
@@ -178,15 +187,18 @@ namespace Pre {
     }
 
     void initYG() {
-        int __off = 0;
-        for (int __len = NL; __len >= 2; __len >>= 1) {
-            long long __g = Q(Y, (P - 1) / __len), __ig = Q(I, (P - 1) / __len);
-            int __w = 1, __iw = 1;
-            for (int j = 0; j < (__len >> 1); ++j) {
-                gp[__off + j] = __w, igp[__off + j] = __iw;
-                __w = __w * __g % P, __iw = __iw * __ig % P;
+        if (ATN) {
+            int __off = 0;
+            for (int __len = NL; __len >= 2; __len >>= 1) {
+                long long __g = Q(Y, (P - 1) / __len),
+                            __ig = Q(I, (P - 1) / __len);
+                int __w = 1, __iw = 1;
+                for (int j = 0; j < (__len >> 1); ++j) {
+                    gp[__off + j] = __w, igp[__off + j] = __iw;
+                    __w = __w * __g % P, __iw = __iw * __ig % P;
+                }
+                __off += __len >> 1;
             }
-            __off += __len >> 1;
         }
         ny[1] = 1;
         for (int i = 2; i < N; ++i)
@@ -304,6 +316,8 @@ namespace Quad {
 
 namespace POLY {
     class poly;
+
+    poly MTT(const poly &__a, const poly &__b);
 
     namespace PIO {
         poly pin(int __n);
@@ -442,6 +456,8 @@ namespace POLY {
                 }
                 return *this = __res;
             }
+            if (!ATN)
+                return *this = MTT(*this, __t);
             int __len = 1;
             while (__len < __n + __m - 1)
                 __len <<= 1;
@@ -478,6 +494,13 @@ namespace POLY {
 
         poly operator&(const poly &__t) const {
             int __n = size(), __m = __t.size(), __len = 1;
+            if (!ATN) {
+                poly __u = MTT(*this, __t);
+                poly __res(__n - __m + 1);
+                for (int i = __m - 1; i < __n; ++i)
+                    __res[i - __m + 1] = __u[i];
+                return __res;
+            }
             while (__len < __n)
                 __len <<= 1;
             poly __u = *this, __v = __t;
@@ -499,6 +522,26 @@ namespace POLY {
             poly __res, __f;
             if (!__n)
                 return __res;
+            if (!ATN) {
+                while (__lim < (__n << 1))
+                    __lim <<= 1;
+                __res.reserve(__lim);
+                __res.pb(Pre::Inv(a[0]));
+                while (__dep < (__n << 1)) {
+                    __f = *this;
+                    __f.resize(__dep);
+                    poly __t = __f * __res;
+                    __t.resize(__dep << 1);
+                    for (int i = 0; i < (__dep << 1); ++i)
+                        __t[i] = __t[i] ? P - __t[i] : 0;
+                    __t[0] = (__t[0] + 2) % P;
+                    __res = __res * __t;
+                    __res.resize(__dep << 1);
+                    __dep <<= 1;
+                }
+                __res.resize(__n);
+                return __res;
+            }
             while (__lim < (__n << 1))
                 __lim <<= 1;
             __res.reserve(__lim);
@@ -612,6 +655,21 @@ namespace POLY {
             return __res ^= __t;
         }
     };
+
+    poly MTT(const poly &__a, const poly &__b) {
+        int __n = __a.size(), __m = __b.size();
+        if (!__n || !__m)
+            return poly();
+        poly __res(__n + __m - 1);
+        for (int i = 0; i < __n; ++i) {
+            if (!__a[i])
+                continue;
+            long long __ai = __a[i];
+            for (int j = 0; j < __m; ++j)
+                __res[i + j] = (__res[i + j] + __ai * __b[j]) % P;
+        }
+        return __res;
+    }
 
     using ffp = poly;
 

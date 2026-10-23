@@ -181,6 +181,16 @@
 
 文件：`2_1_2.cpp` 219 行（202 → 219）。命名空间改成 `MATRIX` / `MIO`；`gauss`/`inv` 共用 `__rref`。
 
+## 1.19.0
+
+- 文件固定为 `poly.cpp` / `matrix.cpp`，版本只由 tag / release 区分；`matrix.cpp` 第一行 `#include "poly.cpp"`，以后不用再改名。
+- 新增 `POLYBOARD_ATN` 编译期开关：`1` 走 NTT，`0` 走 MTT；默认 `1`。
+- `Pre::initYG` 在 `ATN=0` 时跳过 NTT 旋转因子表；`LG/NL` 在 `ATN=0` 时按 FFT 长度取。
+- `poly` 的 `operator*=`、`operator&`、`operator~` 在 `ATN=0` 时走 `POLY::MTT` / 通用牛顿迭代；`ATN=1` 保持原 NTT 路径。
+- `POLY::MTT` 目前是 `O(nm)` 占位实现，先保证框架/分支正确；快速 MTT 后续替换这个函数即可。
+- 验证：`ATN=0` 与 `ATN=1` 在卷积、求逆、`Ln/Exp/Sqrt`、`PMPE/PFI`、Chirp-Z 上逐项一致；`P=1000000007` + `ATN=0` 也通过。
+- 文件：`poly.cpp` 1454 行、`matrix.cpp` 219 行（矩阵只改了 include，接口仍为 2.1.2）。
+
 ## 附：版本与 tag 对照
 
 - 1.1.0–1.9.1：只有 `Code.cpp`。
@@ -189,3 +199,4 @@
 - 1.14.0–1.15.2：同一个提交 `6d55043`，四份快照 `1_14_0.cpp`…`1_15_2.cpp`。
 - 1.16.0 起每个版本一个提交。
 - 2.1.0 在 1.17.0 的提交里；2.1.1 起改成 include 复用。
+- 1.19.0 起文件名固定为 `poly.cpp` / `matrix.cpp`，版本只由 tag 区分；旧 tag 里仍是 `1_x_y.cpp`。
