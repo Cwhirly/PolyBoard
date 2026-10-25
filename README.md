@@ -27,9 +27,9 @@ g++ matrix.cpp -o main -std=c++17 -O2      # 带矩阵
 
 **没有开关宏，所有功能永远可用**（`1.17.0` 里的 `#ifdef TRANS / PMPE / FPI / STIRLING / FFP / PTFFP / CCNHLR` 已全部删除：那些 `#ifdef` 原本只是为了屏蔽巨大的全局 scratch 数组，现在这些数组都收进了函数内部 / `struct`，留着宏只会让编译参数更容易写错）。编译时间约 2 s。
 
-### 1.2 三个旋钮：`P`、`N`、`ATN`
+### 1.2 四个旋钮：`P`、`N`、`ATN`、`P_FIXED`
 
-文件里（`namespace CONSTS` 之前）就是这三个旋钮，默认值是：
+文件里（`namespace CONSTS` 之前）就是这四个旋钮，默认值是：
 
 ```cpp
 #ifndef POLYBOARD_P
@@ -41,27 +41,49 @@ g++ matrix.cpp -o main -std=c++17 -O2      # 带矩阵
 #ifndef POLYBOARD_ATN
 #define POLYBOARD_ATN 1
 #endif
+#ifndef POLYBOARD_P_FIXED
+#define POLYBOARD_P_FIXED 1
+#endif
 ```
 
 写 `#ifndef` 是为了**可以从外部注入**，所以有两种改法：
 
-1. 直接改这三行（单独用 1.x 时最省事）；
-2. **在别的文件的 `#include` 之前定义**，一点都不用动模板本身 —— 矩阵版就是这么用的：
+1. 直接改这四行（单独用 1.x 时最省事）；
+2. **在别的文件的 `#include` 之前定义**，一点都不用动模板本身：
 
 ```cpp
 #define POLYBOARD_P 1000000007
 #define POLYBOARD_N 600005
 #define POLYBOARD_ATN 0
+#define POLYBOARD_P_FIXED 1
 #include "poly.cpp"
 ```
 
-- `P`：模数。原根 `Y`（编译期在前 1000 以内搜索）、`I = 1/Y`、`B = 1/2`、`_I_`（四次单位根）全部编译期算出。
+- `P`：模数。
 - `N`：多项式长度上限（用户数组、阶乘表等的容量）。
 - `ATN`：`Applicable To NTT`。`1` 走 NTT，`0` 走 MTT，默认 `1`。
   - `ATN=1`：`P` 必须是 NTT 素数；`LG = min(ceil(log2(2N-1)), v2(P-1))`、`NL = 2^LG`。`static_assert` 会检查 `P ≡ 1 (mod 4)`、`2^LG | P-1`、原根存在。
-  - `ATN=0`：`LG = ceil(log2(2N-1))`、`NL = 2^LG`；`Pre::initYG` 跳过 NTT 旋转因子表的构建，乘法走 `POLY::MTT`。`P` 可以是任意奇数 32 位模数；多项式全家桶里需要求逆的函数（`Ln/Exp/Sqrt` 等）仍要求用到的元素可逆，通常就是 `P` 为素数。
+  - `ATN=0`：`LG = ceil(log2(2N-1))`、`NL = 2^LG`；`Pre::initYG` 跳过 NTT 旋转因子表的构建，乘法走 `poly::MTT`（5 次 FFT）。`P` 可以是任意奇数 32 位模数；多项式全家桶里需要求逆的函数（`Ln/Exp/Sqrt` 等）仍要求用到的元素可逆，通常就是 `P` 为素数。
+- `P_FIXED`：`P` 是否在编译期确定。
+  - `P_FIXED=1`（默认）：`P` 是 `constexpr`，`mod(x)` 内联成 `x % P`，固定 P 路径没有额外开销；适合模数已知的题。
+  - `P_FIXED=0`：`P` 是运行时 `int`。必须 `POLYBOARD_ATN=0`，并在 `main` 里先调用 `Pre::init(P)`；所有 `% P` 已经换成 `mod`，运行时走 Barrett，矩阵也可以用。示例：
 
-> `1.19.0` 的 `POLY::MTT` 只是 `O(nm)` 的占位实现，方便先把框架和分支验证通；快速 MTT 在后续版本替换这个函数即可，其他代码不用动。
+```cpp
+#define POLYBOARD_P_FIXED 0
+#define POLYBOARD_ATN 0
+#include "poly.cpp"
+
+void work() {
+    int P;
+    read(P);
+    Pre::init(P);
+    ...
+}
+```
+
+`P_FIXED=0` 下 `P` 不再是常量，`static_assert` 不启用；`Y/I/_I_` 也不在 `init` 里计算，`ATN` 只能是 `0`。运行时的乘法、求逆、`Ln/Exp/Sqrt`、`PMPE/PFI`、矩阵都使用 `mod` 的 Barrett 路径；`Sin/Cos` 等依赖四次单位根的函数只建议在 `ATN=1` 的固定 P 下使用。
+
+> `1.19.0` 的 MTT 是 5 次 FFT（DIF 正 + DIT 逆），`ATN=0` 时由 `poly::MTT` 负责乘法。固定 P 路径 `mod` 仍是 `% P`，运行时路径 `mod` 走 Barrett。
 
 不同模数、不同 `ATN` 下的可用性：
 

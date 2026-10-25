@@ -89,6 +89,9 @@ using IO::read;
 #ifndef POLYBOARD_ATN
 #define POLYBOARD_ATN 1
 #endif
+#ifndef POLYBOARD_P_FIXED
+#define POLYBOARD_P_FIXED 1
+#endif
 
 namespace CONSTS {
     constexpr int __qpow(int __a, int __b, int __p) {
@@ -138,8 +141,11 @@ namespace CONSTS {
         return __a < __b ? __a : __b;
     }
 
+    const constexpr int N = POLYBOARD_N;
+    constexpr int NLMAX = 1 << __lgup(2 * N - 1);
+#if POLYBOARD_P_FIXED
     const constexpr bool ATN = POLYBOARD_ATN;
-    const constexpr int P = POLYBOARD_P, N = POLYBOARD_N, Y = __root(P),
+    const constexpr int P = POLYBOARD_P, Y = __root(P),
                         I = __qpow(Y, P - 2, P), B = (P + 1) >> 1,
                         _I_ = __qpow(Y, (P - 1) / 4, P),
                         LG = ATN ? __vmin(__lgup(2 * N - 1), __v2(P - 1))
@@ -154,26 +160,56 @@ namespace CONSTS {
     static_assert(__lgup(2 * N - 1) <= __v2(P - 1), "N is too large for P");
     static_assert(__isroot(Y, P), "no primitive root");
 #endif
+    inline int mod(long long __x) {
+        __x %= P;
+        return __x < 0 ? __x + P : __x;
+    }
+#else
+    static_assert(!POLYBOARD_ATN, "runtime P requires POLYBOARD_ATN=0");
+    const constexpr bool ATN = false;
+    int P = POLYBOARD_P, Y = 0, I = 0, B = (P + 1) >> 1, _I_ = 0, LG = 0,
+        NL = 0;
+    struct Barrett {
+        unsigned long long B, m;
+        void init(unsigned long long __m) {
+            m = __m, B = (__uint128_t(1) << 64) / m;
+        }
+        unsigned long long operator()(unsigned long long __a) const {
+            unsigned long long __r = __a - m * ((__uint128_t)B * __a >> 64);
+            return __r >= m ? __r - m : __r;
+        }
+        Barrett(unsigned long long __m = POLYBOARD_P) { init(__m); }
+    } bar;
+    inline int mod(long long __x) {
+        if (__x < 0) {
+            unsigned long long __r = bar((unsigned long long)(-__x));
+            return __r ? P - (int)__r : 0;
+        }
+        return (int)bar((unsigned long long)__x);
+    }
+#endif
 }
 using namespace CONSTS;
 
 namespace Pre {
+#if POLYBOARD_P_FIXED
     int gp[NL], igp[NL], ny[N], fac[N], ifac[N];
+#else
+    int gp[NLMAX], igp[NLMAX], ny[N], fac[N], ifac[N];
+#endif
 
     int Q(int __a, int __b) {
         int __res = 1;
         while (__b) {
             if (__b & 1)
-                __res = 1ll * __res * __a % P;
-            __a = 1ll * __a * __a % P, __b >>= 1;
+                __res = mod(1ll * __res * __a);
+            __a = mod(1ll * __a * __a), __b >>= 1;
         }
-        return __res % P;
+        return mod(__res);
     }
 
     int Inv(int __x) {
-        __x %= P;
-        if (__x < 0)
-            __x += P;
+        __x = mod(__x);
         long long __r0 = __x, __r1 = P, __s0 = 1, __s1 = 0;
         while (__r1) {
             long long __t = __r0 / __r1;
@@ -182,10 +218,10 @@ namespace Pre {
         }
         if (__r0 != 1)
             return 0;
-        __s0 %= P;
-        return __s0 < 0 ? __s0 + P : __s0;
+        return mod(__s0);
     }
 
+#if POLYBOARD_P_FIXED
     void initYG() {
         if (ATN) {
             int __off = 0;
@@ -195,21 +231,41 @@ namespace Pre {
                 int __w = 1, __iw = 1;
                 for (int j = 0; j < (__len >> 1); ++j) {
                     gp[__off + j] = __w, igp[__off + j] = __iw;
-                    __w = __w * __g % P, __iw = __iw * __ig % P;
+                    __w = mod(1ll * __w * __g), __iw = mod(1ll * __iw * __ig);
                 }
                 __off += __len >> 1;
             }
         }
         ny[1] = 1;
         for (int i = 2; i < N; ++i)
-            ny[i] = 1ll * (P - P / i) * ny[P % i] % P;
+            ny[i] = mod(1ll * (P - P / i) * ny[P % i]);
         fac[0] = ifac[0] = 1;
         for (int i = 1; i < N; ++i)
-            fac[i] = 1ll * fac[i - 1] * i % P;
+            fac[i] = mod(1ll * fac[i - 1] * i);
         ifac[N - 1] = Inv(fac[N - 1]);
         for (int i = N - 1; i >= 1; --i)
-            ifac[i - 1] = 1ll * ifac[i] * i % P;
+            ifac[i - 1] = mod(1ll * ifac[i] * i);
     }
+#else
+    void init(int __p) {
+        P = __p;
+        B = (P + 1) >> 1;
+        LG = __lgup(2 * N - 1);
+        NL = 1 << LG;
+        bar.init(P);
+        ny[1] = 1;
+        for (int i = 2; i < N; ++i)
+            ny[i] = mod(1ll * (P - P / i) * ny[P % i]);
+        fac[0] = ifac[0] = 1;
+        for (int i = 1; i < N; ++i)
+            fac[i] = mod(1ll * fac[i - 1] * i);
+        ifac[N - 1] = Inv(fac[N - 1]);
+        for (int i = N - 1; i >= 1; --i)
+            ifac[i - 1] = mod(1ll * ifac[i] * i);
+    }
+
+    void initYG() { init(POLYBOARD_P); }
+#endif
 }
 
 namespace Pint {
@@ -259,17 +315,17 @@ namespace Quad {
             int __res = 1;
             while (__b) {
                 if (__b & 1)
-                    __res = 1ll * __res * __a % P;
-                __a = 1ll * __a * __a % P, __b >>= 1;
+                    __res = mod(1ll * __res * __a);
+                __a = mod(1ll * __a * __a), __b >>= 1;
             }
-            return __res % P;
+            return mod(__res);
         }
 
         NTC mul(const NTC &__a, const NTC &__b) const {
             NTC __res;
-            __res.Re =
-                (1ll * __a.Re * __b.Re + 1ll * ii * __a.Im % P * __b.Im) % P;
-            __res.Im = (1ll * __a.Re * __b.Im + 1ll * __a.Im * __b.Re) % P;
+            __res.Re = mod(1ll * __a.Re * __b.Re +
+                           1ll * mod(1ll * ii * __a.Im) * __b.Im);
+            __res.Im = mod((1ll * __a.Re * __b.Im + 1ll * __a.Im * __b.Re));
             return __res;
         }
 
@@ -288,8 +344,8 @@ namespace Quad {
                 return -1;
             int __a;
             do {
-                __a = rnd() % P;
-                ii = (1ll * __a * __a % P - __n + P) % P;
+                __a = mod(rnd());
+                ii = mod(mod(1ll * __a * __a) - __n + P);
             } while (Q(ii, (P - 1) >> 1) != P - 1);
             return q({__a, 1}, B).Re;
         }
@@ -298,7 +354,7 @@ namespace Quad {
         int work(int __n) {
             if (!__n)
                 return 0;
-            int __u = Cipolla(__n % P);
+            int __u = Cipolla(mod(__n));
             if (__u == -1)
                 return P + 1;
             int __v = P - __u;
@@ -464,7 +520,7 @@ namespace POLY {
                             int __u = a[i + j], __v = a[i + j + __half];
                             a[i + j] = add(__u, __v);
                             a[i + j + __half] =
-                                1ll * __w[j] * del(__u, __v) % P;
+                                mod(1ll * __w[j] * del(__u, __v));
                         }
                     }
                 }
@@ -475,7 +531,7 @@ namespace POLY {
                     for (int i = 0; i < __n; i += __len) {
                         for (int j = 0; j < __half; ++j) {
                             int __u = a[i + j],
-                                __v = 1ll * __w[j] * a[i + j + __half] % P;
+                                __v = mod(1ll * __w[j] * a[i + j + __half]);
                             a[i + j] = add(__u, __v);
                             a[i + j + __half] = del(__u, __v);
                         }
@@ -483,7 +539,7 @@ namespace POLY {
                 }
                 long long __inv = Pre::Inv(__n);
                 for (int i = 0; i < __n; ++i)
-                    a[i] = a[i] * __inv % P;
+                    a[i] = mod(a[i] * __inv);
             }
         }
 
@@ -500,7 +556,7 @@ namespace POLY {
                         continue;
                     long long __ai = a[i];
                     for (int j = 0; j < __m; ++j)
-                        __res[i + j] = (__res[i + j] + __ai * __t[j]) % P;
+                        __res[i + j] = mod((__res[i + j] + __ai * __t[j]));
                 }
                 return *this = __res;
             }
@@ -516,7 +572,7 @@ namespace POLY {
             NTT(1);
             __u.NTT(1);
             for (int i = 0; i < __len; ++i)
-                a[i] = 1ll * a[i] * __u[i] % P;
+                a[i] = mod(1ll * a[i] * __u[i]);
             NTT(0);
             resize(__n + __m - 1);
             return *this;
@@ -526,7 +582,7 @@ namespace POLY {
             if (__t < 0)
                 __t += P;
             for (int i = 0; i < size(); ++i)
-                a[i] = 1ll * a[i] * __t % P;
+                a[i] = mod(1ll * a[i] * __t);
             return *this;
         }
 
@@ -557,7 +613,7 @@ namespace POLY {
             __u.NTT(1);
             __v.NTT(1);
             for (int i = 0; i < __len; ++i)
-                __u[i] = 1ll * __u[i] * __v[i] % P;
+                __u[i] = mod(1ll * __u[i] * __v[i]);
             __u.NTT(0);
             poly __res(__n - __m + 1);
             for (int i = __m - 1; i < __n; ++i)
@@ -582,7 +638,7 @@ namespace POLY {
                     __t.resize(__dep << 1);
                     for (int i = 0; i < (__dep << 1); ++i)
                         __t[i] = __t[i] ? P - __t[i] : 0;
-                    __t[0] = (__t[0] + 2) % P;
+                    __t[0] = mod((__t[0] + 2));
                     __res = __res * __t;
                     __res.resize(__dep << 1);
                     __dep <<= 1;
@@ -604,8 +660,9 @@ namespace POLY {
                 __f.NTT(1);
                 __res.NTT(1);
                 for (int i = 0; i < (__dep << 1); ++i)
-                    __res[i] = 1ll * __res[i] *
-                               (2 + P - 1ll * __f[i] * __res[i] % P) % P;
+                    __res[i] =
+                        mod(1ll * __res[i] *
+                            (2 + P - mod(1ll * __f[i] * __res[i])));
                 __res.NTT(0);
                 __dep <<= 1;
             }
@@ -632,7 +689,7 @@ namespace POLY {
                 __t += P;
             __t = Pre::Inv(__t);
             for (int i = 0; i < size(); ++i)
-                a[i] = 1ll * a[i] * __t % P;
+                a[i] = mod(1ll * a[i] * __t);
             return *this;
         }
 
@@ -710,7 +767,7 @@ namespace POLY {
             long long __v = (long long)(__x + 0.5);
             if (__v < 0)
                 __v = 0;
-            return __v % P;
+            return mod(__v);
         }
 
         poly MTT(const poly &__t) const {
@@ -746,7 +803,7 @@ namespace POLY {
                 long long __bc = Get(__fb[i].real());
                 long long __bd = Get(__fb[i].imag());
                 __res[i] =
-                    (__ac + (__ad + __bc) * 32768 + __bd * 1073741824) % P;
+                    mod((__ac + (__ad + __bc) * 32768 + __bd * 1073741824));
             }
             return __res;
         }
@@ -823,7 +880,7 @@ namespace POLY {
             if (!__) {
                 long long __inv = Pre::Inv(__n);
                 for (int i = 0; i < __n; ++i)
-                    a[i] = a[i] * __inv % P;
+                    a[i] = mod(a[i] * __inv);
             }
         }
 
@@ -832,7 +889,7 @@ namespace POLY {
             __f.Fwtand(1);
             __h.Fwtand(1);
             for (int i = 0; i < __f.size(); ++i)
-                __f[i] = 1ll * __f[i] * __h[i] % P;
+                __f[i] = mod(1ll * __f[i] * __h[i]);
             __f.Fwtand(0);
             return __f;
         }
@@ -842,7 +899,7 @@ namespace POLY {
             __f.Fwtor(1);
             __h.Fwtor(1);
             for (int i = 0; i < __f.size(); ++i)
-                __f[i] = 1ll * __f[i] * __h[i] % P;
+                __f[i] = mod(1ll * __f[i] * __h[i]);
             __f.Fwtor(0);
             return __f;
         }
@@ -852,7 +909,7 @@ namespace POLY {
             __f.Fwtxor(1);
             __h.Fwtxor(1);
             for (int i = 0; i < __f.size(); ++i)
-                __f[i] = 1ll * __f[i] * __h[i] % P;
+                __f[i] = mod(1ll * __f[i] * __h[i]);
             __f.Fwtxor(0);
             return __f;
         }
@@ -874,7 +931,7 @@ namespace POLY {
                     int *__h = &__H[i][0], *__x = &__F[k][0],
                         *__y = &__G[i - k][0];
                     for (int S = 0; S < __n; ++S)
-                        __h[S] = (__h[S] + 1ll * __x[S] * __y[S]) % P;
+                        __h[S] = mod((__h[S] + 1ll * __x[S] * __y[S]));
                 }
             for (int i = 0; i <= __lgn; ++i)
                 __H[i].Fwtor(0);
@@ -888,7 +945,7 @@ namespace POLY {
             if (__t < 0)
                 __t += P;
             for (int i = 0; i < size(); ++i)
-                a[i] = 1ll * a[i] * __t % P;
+                a[i] = mod(1ll * a[i] * __t);
             return *this;
         }
 
@@ -912,7 +969,7 @@ poly Dx(const poly &__f) {
     poly __ans;
     __ans.reserve(__f.empty() ? 0 : __f.size() - 1);
     for (int i = 1; i < __f.size(); ++i)
-        __ans.pb(1ll * i * __f[i] % P);
+        __ans.pb(mod(1ll * i * __f[i]));
     return __ans;
 }
 
@@ -921,7 +978,7 @@ poly Integ(const poly &__f) {
     __ans.reserve(__f.size() + 1);
     __ans.pb(0);
     for (int i = 0; i < __f.size(); ++i)
-        __ans.pb(1ll * Pre::ny[i + 1] * __f[i] % P);
+        __ans.pb(mod(1ll * Pre::ny[i + 1] * __f[i]));
     return __ans;
 }
 
@@ -963,7 +1020,7 @@ poly UCPF::Sqrt(poly __f) {
 
 poly UCPF::Sin(poly __f) {
     return (Exp(__f * _I_) - Exp(__f * (P - _I_))) *
-           (1ll * B * Pre::Inv(_I_) % P);
+           (mod(1ll * B * Pre::Inv(_I_)));
 }
 
 poly UCPF::Cos(poly __f) {
@@ -1049,18 +1106,18 @@ poly UCPF::Trans(poly __f, int __c) {
     int __n = __f.size();
     poly __g(__n), __h(__n);
     for (int i = 0; i < __n; ++i)
-        __g[i] = 1ll * __f[i] * Pre::fac[i] % P;
+        __g[i] = mod(1ll * __f[i] * Pre::fac[i]);
     long long __pw = 1;
     for (int i = 0; i < __n; ++i) {
-        __h[i] = __pw * Pre::ifac[i] % P;
-        __pw = __pw * __c % P;
+        __h[i] = mod(__pw * Pre::ifac[i]);
+        __pw = mod(__pw * __c);
     }
     __g.rev();
     __h *= __g;
     __h.resize(__n);
     __h.rev();
     for (int i = 0; i < __n; ++i)
-        __h[i] = 1ll * __h[i] * Pre::ifac[i] % P;
+        __h[i] = mod(1ll * __h[i] * Pre::ifac[i]);
     return __h;
 }
 
@@ -1134,7 +1191,7 @@ namespace Multipoint_Evel {
             query(0, __m - 1, 1, __tmp);
             poly __ans(__m);
             for (int i = 0; i < __m; ++i)
-                __ans[i] = (1ll * __x[i] * an[i] + __con) % P;
+                __ans[i] = mod((1ll * __x[i] * an[i] + __con));
             return __ans;
         }
     };
@@ -1195,8 +1252,8 @@ namespace Fast_Interpolation {
             __mp.query(0, __n - 1, 1, __tmp);
             vector<int> __v(__n);
             for (int i = 0; i < __n; ++i)
-                __v[i] = 1ll * __y[i] *
-                         Pre::Inv((1ll * __x[i] * __mp.an[i] + __con) % P) % P;
+                __v[i] = mod(1ll * __y[i] *
+                             Pre::Inv(mod(1ll * __x[i] * __mp.an[i] + __con)));
             solve(0, __n - 1, 1, __v);
             return std::move(ret[1]);
         }
@@ -1221,16 +1278,16 @@ namespace ChirpZ {
         long long __w = 1, __iw = 1, __p = 1, __ip = 1, __ic = Pre::Inv(__c);
         for (int i = 0; i < __l; ++i) {
             __r[__l - 1 - i] = __w;
-            __g[i] = __iw * __f[i] % P;
-            __w = __w * __p % P, __iw = __iw * __ip % P;
-            __p = __p * __c % P, __ip = __ip * __ic % P;
+            __g[i] = mod(__iw * __f[i]);
+            __w = mod(1ll * __w * __p), __iw = mod(1ll * __iw * __ip);
+            __p = mod(1ll * __p * __c), __ip = mod(1ll * __ip * __ic);
         }
         poly __t = __r * __g;
         poly __res(__m);
         long long __v = 1, __vp = 1;
         for (int i = 0; i < __m; ++i) {
-            __res[i] = __t[__l - 1 - i] * __v % P;
-            __v = __v * __vp % P, __vp = __vp * __ic % P;
+            __res[i] = mod(__t[__l - 1 - i] * __v);
+            __v = mod(1ll * __v * __vp), __vp = mod(1ll * __vp * __ic);
         }
         return __res;
     }
@@ -1247,7 +1304,7 @@ namespace Stirling {
             __g[i] = (i & 1) ? P - Pre::ifac[i] : Pre::ifac[i];
         }
         for (int i = 0; i <= __n; ++i)
-            __f[i] = 1ll * __f[i] * Pre::Q(i, __n) % P;
+            __f[i] = mod(1ll * __f[i] * Pre::Q(i, __n));
         __f *= __g;
         __f.resize(__n + 1);
         return __f;
@@ -1305,7 +1362,7 @@ namespace Staling {
         __f.resize(__n + 1);
         __f /= Pre::fac[__k];
         for (int i = 0; i <= __n; ++i)
-            __f[i] = 1ll * __f[i] * Pre::fac[i] % P;
+            __f[i] = mod(1ll * __f[i] * Pre::fac[i]);
         return __f;
     }
 }
@@ -1342,7 +1399,7 @@ namespace FFP {
         poly __r = Multipoint_Evel::Multipoint().eval(__f, __x);
         poly __g(__n + 1), __h(__n + 1);
         for (int i = 0; i <= __n; ++i) {
-            __g[i] = 1ll * __r[i] * Pre::ifac[i] % P;
+            __g[i] = mod(1ll * __r[i] * Pre::ifac[i]);
             __h[i] = (i & 1) ? P - Pre::ifac[i] : Pre::ifac[i];
         }
         __g *= __h;
@@ -1374,12 +1431,12 @@ namespace CCHLR {
     int Fiduccia(int *c, int *a, int k, int n) {
         poly __g;
         for (int i = 1; i <= k; ++i)
-            __g.pb((P - c[k - i + 1]) % P);
+            __g.pb(mod((P - c[k - i + 1])));
         __g.pb(1);
         poly __t = __calc(__g, n);
         long long __ans = 0;
         for (int i = 0; i < k; ++i)
-            __ans = (__ans + 1ll * __t[i] * a[i]) % P;
+            __ans = mod((__ans + 1ll * __t[i] * a[i]));
         return __ans;
     }
 
@@ -1387,7 +1444,7 @@ namespace CCHLR {
         while (__n) {
             poly __t = __g;
             for (int i = 1; i < __g.size(); i += 2)
-                __t[i] = (P - __g[i]) % P;
+                __t[i] = mod((P - __g[i]));
             __f *= __t;
             __g *= __t;
             int i = (__n & 1);
@@ -1401,17 +1458,17 @@ namespace CCHLR {
         }
         if (!__f.size())
             return 0;
-        return 1ll * __f[0] * Pre::Inv(__g[0]) % P;
+        return mod(1ll * __f[0] * Pre::Inv(__g[0]));
     }
 
     int Bostan_Mori_CCHLR(int *c, int *a, int k, int n) {
         poly __g;
         __g.pb(1);
         for (int i = 1; i <= k; ++i)
-            __g.pb((P - c[i]) % P);
+            __g.pb(mod((P - c[i])));
         poly __t;
         for (int i = 0; i < k; ++i)
-            __t.pb((a[i] % P + P) % P);
+            __t.pb(mod(mod(a[i]) + P));
         poly __res = __t * __g;
         __res.resize(k);
         return Bostan_Mori(__res, __g, n);
@@ -1460,7 +1517,7 @@ namespace CCNHLR {
         if (!k) {
             long long __r = 0;
             for (int i = __d; i >= 0; --i)
-                __r = (__r * n + __p0[i]) % P;
+                __r = mod((__r * n + __p0[i]));
             return __r;
         }
         if (n < k)
@@ -1468,7 +1525,7 @@ namespace CCNHLR {
         poly __D(k + 1);
         __D[0] = 1;
         for (int i = 1; i <= k; ++i)
-            __D[i] = (P - c[i]) % P;
+            __D[i] = mod((P - c[i]));
         poly __A(k);
         for (int i = 0; i < k; ++i)
             __A[i] = a[i];
@@ -1477,32 +1534,33 @@ namespace CCNHLR {
         poly __fall = FFP::FFPTP(__p0);
         poly __u(__d + 1), __v(__d + 1);
         for (int j = 0; j <= __d; ++j) {
-            __u[j] = 1ll * __fall[j] * Pre::fac[j] % P * Pre::fac[__d - j] % P;
+            __u[j] = mod(mod(1ll * __fall[j] * Pre::fac[j]) *
+                         Pre::fac[__d - j]);
             __v[j] = (j & 1) ? P - Pre::ifac[j] : Pre::ifac[j];
         }
         poly __R = __u * __v;
         for (int t = 0; t <= __d; ++t)
-            __R[t] = 1ll * __R[t] * Pre::ifac[__d - t] % P;
+            __R[t] = mod(1ll * __R[t] * Pre::ifac[__d - t]);
         __R.resize(__d + 1);
         poly __G(k);
         for (int t = 0; t < k; ++t)
-            __G[t] =
-                1ll * Pre::fac[__d + t] * Pre::ifac[__d] % P * Pre::ifac[t] % P;
+            __G[t] = mod(mod(1ll * Pre::fac[__d + t] * Pre::ifac[__d]) *
+                         Pre::ifac[t]);
         poly __K = __R * __G;
         __K.resize(k);
         poly __W(__d + 2);
         for (int t = 0; t <= __d + 1; ++t) {
-            int __b = 1ll * Pre::fac[__d + 1] * Pre::ifac[t] % P *
-                      Pre::ifac[__d + 1 - t] % P;
+            int __b = mod(mod(1ll * Pre::fac[__d + 1] * Pre::ifac[t]) *
+                          Pre::ifac[__d + 1 - t]);
             __W[t] = (t & 1) ? P - __b : __b;
         }
         poly __E(k);
         for (int i = 0; i < k; ++i)
-            __E[i] = (__C[i] + P - __K[i]) % P;
+            __E[i] = mod((__C[i] + P - __K[i]));
         poly __Num = __E * __W;
         __Num.resize(k + __d + 1);
         for (int i = 0; i <= __d; ++i)
-            __Num[i] = (__Num[i] + __R[i]) % P;
+            __Num[i] = mod((__Num[i] + __R[i]));
         poly __Den = __W * __D;
         __Den.resize(k + __d + 2);
         return Bostan_Mori(__Num, __Den, n);
@@ -1516,12 +1574,10 @@ using CCNHLR::Bostam_Mori_CCNHLR;
 int n, m, c;
 
 inline void work() {
-    poly f;
+    poly f,g;
     read(n);
-    read(c);
     read(m);
     f = pin(n);
-    ppri(Chirp_Z(f, c, m), m);
 }
 
 signed main() {

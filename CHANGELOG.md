@@ -185,11 +185,12 @@
 
 - 文件固定为 `poly.cpp` / `matrix.cpp`，版本只由 tag / release 区分；`matrix.cpp` 第一行 `#include "poly.cpp"`，以后不用再改名。
 - 新增 `POLYBOARD_ATN` 编译期开关：`1` 走 NTT，`0` 走 MTT；默认 `1`。
-- `Pre::initYG` 在 `ATN=0` 时跳过 NTT 旋转因子表；`LG/NL` 在 `ATN=0` 时按 FFT 长度取。
-- `poly` 的 `operator*=`、`operator&`、`operator~` 在 `ATN=0` 时走 `POLY::MTT` / 通用牛顿迭代；`ATN=1` 保持原 NTT 路径。
-- `POLY::MTT` 目前是 `O(nm)` 占位实现，先保证框架/分支正确；快速 MTT 后续替换这个函数即可。
-- 验证：`ATN=0` 与 `ATN=1` 在卷积、求逆、`Ln/Exp/Sqrt`、`PMPE/PFI`、Chirp-Z 上逐项一致；`P=1000000007` + `ATN=0` 也通过。
-- 文件：`poly.cpp` 1454 行、`matrix.cpp` 219 行（矩阵只改了 include，接口仍为 2.1.2）。
+- 新增 `POLYBOARD_P_FIXED`：默认 `1`；`0` 时 `P` 是运行时 `int`，必须 `ATN=0`，在 `main` 里调 `Pre::init(P)`。所有 `% P` 改成 `mod`：固定 P 下内联为 `% P`，运行时走 Barrett；`matrix.cpp` 同步改用 `mod`。
+- `Pre::initYG` 在 `ATN=0` 时跳过 NTT 旋转因子表；`LG/NL` 在 `ATN=0` 时按 FFT 长度取；`P_FIXED=0` 时由 `Pre::init(P)` 计算 `B/LG/NL`、Barrett 和阶乘/逆元表。
+- `poly` 的 `operator*=`、`operator&`、`operator~` 在 `ATN=0` 时走 `poly::MTT` / 通用牛顿迭代；`ATN=1` 保持原 NTT 路径。
+- `poly::MTT` 是 5 次 FFT（`namespace FFT` 的 `run`，DIF 正 + DIT 逆），不再占位。
+- 验证：固定 P 的 ATN=0/1、运行时 P=998244353/1000000007/12、n=1e5/6e5、矩阵固定/运行时 1e9+7 均通过；运行时与固定路径结果一致。
+- 文件：`poly.cpp` 1591 行、`matrix.cpp` 219 行。
 
 ## 附：版本与 tag 对照
 

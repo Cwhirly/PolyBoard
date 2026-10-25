@@ -18,13 +18,13 @@ namespace MATRIX {
                     continue;
                 swap(a[__r], a[__p]);
                 for (int j = k; j <= m; ++j)
-                    a[__r][j] = 1ll * a[__r][j] * __iv % P;
+                    a[__r][j] = mod(1ll * a[__r][j] * __iv);
                 for (int i = 1; i <= n; ++i) {
                     if (i == __r || !a[i][k])
                         continue;
                     int __x = a[i][k];
                     for (int j = k; j <= m; ++j)
-                        a[i][j] = (a[i][j] + 1ll * __x * (P - a[__r][j])) % P;
+                        a[i][j] = mod(a[i][j] + 1ll * __x * (P - a[__r][j]));
                 }
                 ++__r;
             }
@@ -78,7 +78,7 @@ namespace MATRIX {
                         continue;
                     const vector<int> &__tk = __t.a[k];
                     for (int j = 1; j <= __t.m; ++j)
-                        __ri[j] = (__ri[j] + 1ll * __x * __tk[j]) % P;
+                        __ri[j] = mod(__ri[j] + 1ll * __x * __tk[j]);
                 }
             }
             a.swap(__ans.a);
@@ -152,13 +152,13 @@ namespace MATRIX {
                 for (int i = k + 1; i <= n; ++i) {
                     if (!__t.a[i][k])
                         continue;
-                    int __x = 1ll * __t.a[i][k] * __iv % P;
+                    int __x = mod(1ll * __t.a[i][k] * __iv);
                     for (int j = k; j <= n; ++j)
-                        __t.a[i][j] = (__t.a[i][j] + 1ll * __x * (P - __t.a[k][j])) % P;
+                        __t.a[i][j] = mod(__t.a[i][j] + 1ll * __x * (P - __t.a[k][j]));
                 }
             }
             for (int i = 1; i <= n; ++i)
-                __res = 1ll * __res * __t.a[i][i] % P;
+                __res = mod(1ll * __res * __t.a[i][i]);
             return __res;
         }
 
