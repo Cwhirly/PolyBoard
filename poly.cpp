@@ -155,11 +155,6 @@ namespace CONSTS {
     static_assert(!ATN || (__lgup(2 * N - 1) <= __v2(P - 1)),
                   "N is too large for P");
     static_assert(!ATN || __isroot(Y, P), "no primitive root");
-#if POLYBOARD_P == 998244353
-    static_assert(P % 4 == 1, "P must be 1 mod 4");
-    static_assert(__lgup(2 * N - 1) <= __v2(P - 1), "N is too large for P");
-    static_assert(__isroot(Y, P), "no primitive root");
-#endif
     inline int mod(long long __x) {
         __x %= P;
         return __x < 0 ? __x + P : __x;
