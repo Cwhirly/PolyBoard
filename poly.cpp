@@ -314,10 +314,58 @@ namespace Quad {
 
 }
 
+namespace FFT {
+    template <class T>
+    void run(vector<T> &__a, bool __fwd) {
+        int __n = (int)__a.size(), __lg = 0;
+        while ((1 << __lg) < __n)
+            ++__lg;
+        static vector<T> __w;
+        if ((int)__w.size() < __n - 1) {
+            __w.resize(__n - 1);
+            const double __pi = acos(-1.0);
+            for (int d = 1; d <= __lg; ++d) {
+                int __half = 1 << (d - 1);
+                T *__p = __w.data() + (__half - 1);
+                for (int j = 0; j < __half; ++j)
+                    __p[j] =
+                        T(cos(__pi * j / __half), sin(__pi * j / __half));
+            }
+        }
+        if (__fwd) {
+            for (int d = __lg; d >= 1; --d) {
+                int __len = 1 << d, __half = __len >> 1;
+                const T *__p = __w.data() + (__half - 1);
+                for (int k = 0; k < __n; k += __len)
+                    for (int j = 0; j < __half; ++j) {
+                        T __u = __a[k + j], __v = __a[k + j + __half];
+                        __a[k + j] = __u + __v;
+                        __a[k + j + __half] = (__u - __v) * __p[j];
+                    }
+            }
+        } else {
+            for (int d = 1; d <= __lg; ++d) {
+                int __len = 1 << d, __half = __len >> 1;
+                const T *__p = __w.data() + (__half - 1);
+                for (int k = 0; k < __n; k += __len)
+                    for (int j = 0; j < __half; ++j) {
+                        T __u = __a[k + j],
+                          __v = __a[k + j + __half] * __p[j];
+                        __a[k + j] = __u + __v;
+                        __a[k + j + __half] = __u - __v;
+                    }
+            }
+            for (int i = 0; i < __n; ++i)
+                __a[i] /= __n;
+            for (int i = 1; (i << 1) < __n; ++i)
+                swap(__a[i], __a[__n - i]);
+        }
+    }
+}
+
 namespace POLY {
     class poly;
 
-    poly MTT(const poly &__a, const poly &__b);
 
     namespace PIO {
         poly pin(int __n);
@@ -457,7 +505,7 @@ namespace POLY {
                 return *this = __res;
             }
             if (!ATN)
-                return *this = MTT(*this, __t);
+                return *this = MTT(__t);
             int __len = 1;
             while (__len < __n + __m - 1)
                 __len <<= 1;
@@ -495,7 +543,7 @@ namespace POLY {
         poly operator&(const poly &__t) const {
             int __n = size(), __m = __t.size(), __len = 1;
             if (!ATN) {
-                poly __u = MTT(*this, __t);
+                poly __u = MTT(__t);
                 poly __res(__n - __m + 1);
                 for (int i = __m - 1; i < __n; ++i)
                     __res[i - __m + 1] = __u[i];
@@ -654,22 +702,55 @@ namespace POLY {
             poly __res = *this;
             return __res ^= __t;
         }
-    };
 
-    poly MTT(const poly &__a, const poly &__b) {
-        int __n = __a.size(), __m = __b.size();
-        if (!__n || !__m)
-            return poly();
-        poly __res(__n + __m - 1);
-        for (int i = 0; i < __n; ++i) {
-            if (!__a[i])
-                continue;
-            long long __ai = __a[i];
-            for (int j = 0; j < __m; ++j)
-                __res[i + j] = (__res[i + j] + __ai * __b[j]) % P;
+    private:
+        using cd = complex<double>;
+
+        static int Get(double __x) {
+            long long __v = (long long)(__x + 0.5);
+            if (__v < 0)
+                __v = 0;
+            return __v % P;
         }
-        return __res;
-    }
+
+        poly MTT(const poly &__t) const {
+            int __n = size(), __m = __t.size();
+            if (!__n || !__m)
+                return poly();
+            int __len = 1;
+            while (__len < __n + __m - 1)
+                __len <<= 1;
+            static vector<cd> __fa, __fb, __ft;
+            __fa.assign(__len, cd(0, 0));
+            __fb.assign(__len, cd(0, 0));
+            __ft.assign(__len, cd(0, 0));
+            for (int i = 0; i < __n; ++i) {
+                __fa[i] = cd(a[i] & 32767, 0);
+                __fb[i] = cd(a[i] >> 15, 0);
+            }
+            for (int i = 0; i < __m; ++i)
+                __ft[i] = cd(__t.a[i] & 32767, __t.a[i] >> 15);
+            FFT::run(__fa, true);
+            FFT::run(__fb, true);
+            FFT::run(__ft, true);
+            for (int i = 0; i < __len; ++i) {
+                __fa[i] *= __ft[i];
+                __fb[i] *= __ft[i];
+            }
+            FFT::run(__fa, false);
+            FFT::run(__fb, false);
+            poly __res(__n + __m - 1);
+            for (int i = 0; i < __res.size(); ++i) {
+                long long __ac = Get(__fa[i].real());
+                long long __ad = Get(__fa[i].imag());
+                long long __bc = Get(__fb[i].real());
+                long long __bd = Get(__fb[i].imag());
+                __res[i] =
+                    (__ac + (__ad + __bc) * 32768 + __bd * 1073741824) % P;
+            }
+            return __res;
+        }
+    };
 
     using ffp = poly;
 
