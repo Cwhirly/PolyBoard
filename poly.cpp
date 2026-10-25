@@ -1267,23 +1267,169 @@ namespace ChirpZ {
         return 1ll * __i * (__i - 1) / 2 % (P - 1);
     }
 
-    poly Chirp_Z(poly __f, int __c, int __m) {
-        int __n = __f.size(), __l = __n + __m - 1;
-        __f.resize(__l);
-        poly __r(__l), __g(__l);
-        long long __w = 1, __iw = 1, __p = 1, __ip = 1, __ic = Pre::Inv(__c);
-        for (int i = 0; i < __l; ++i) {
-            __r[__l - 1 - i] = __w;
-            __g[i] = mod(__iw * __f[i]);
-            __w = mod(1ll * __w * __p), __iw = mod(1ll * __iw * __ip);
-            __p = mod(1ll * __p * __c), __ip = mod(1ll * __ip * __ic);
+    template <int __mod>
+    struct NTT3 {
+        static constexpr int __g = 3;
+        vector<int> __pw;
+        int __lim;
+
+        int qpow(int __a, int __b) {
+            long long __r = 1, __x = __a;
+            while (__b) {
+                if (__b & 1)
+                    __r = __r * __x % __mod;
+                __x = __x * __x % __mod, __b >>= 1;
+            }
+            return __r;
         }
-        poly __t = __r * __g;
+
+        void inc(int &__a, int __b) {
+            __a += __b;
+            if (__a >= __mod)
+                __a -= __mod;
+        }
+
+        void init(int __up) {
+            __lim = 1;
+            while (__lim <= __up)
+                __lim <<= 1;
+            __pw.assign(__lim << 1, 1);
+            for (int __l = 1; __l <= __up; __l <<= 1) {
+                int __w = qpow(__g, (__mod >> 2) / __l);
+                for (int i = 0; i < __l; ++i)
+                    __pw[__l + i] = 1ll * __pw[i] * __w % __mod;
+            }
+        }
+
+        void DIF(vector<int> &__a) {
+            int __n = __lim;
+            if (__n == 1)
+                return;
+            for (int __mid = __n >> 1; __mid >= 2; __mid >>= 1)
+                for (int __w = 0, __j = 0; __j < __n; __j += __mid << 1, ++__w)
+                    for (int __k = 0; __k < __mid; __k += 2) {
+                        int __x =
+                                1ll * __pw[__w] * __a[__j + __mid + __k] % __mod,
+                            __y = 1ll * __pw[__w] *
+                                  __a[__j + __mid + __k + 1] % __mod;
+                        __a[__j + __mid + __k] = __a[__j + __k];
+                        inc(__a[__j + __k], __x);
+                        inc(__a[__j + __mid + __k], __mod - __x);
+                        __a[__j + __mid + __k + 1] = __a[__j + __k + 1];
+                        inc(__a[__j + __k + 1], __y);
+                        inc(__a[__j + __mid + __k + 1], __mod - __y);
+                    }
+            for (int __w = 0, __j = 0; __j < __n; __j += 2, ++__w) {
+                int __y = 1ll * __pw[__w] * __a[__j + 1] % __mod;
+                __a[__j + 1] = __a[__j];
+                inc(__a[__j], __y);
+                inc(__a[__j + 1], __mod - __y);
+            }
+        }
+
+        void DIT(vector<int> &__a) {
+            int __n = __lim;
+            if (__n == 1)
+                return;
+            for (int __w = 0, __j = 0; __j < __n; __j += 2, ++__w) {
+                int __y = 1ll * __pw[__w] *
+                          (__mod + __a[__j] - __a[__j + 1]) % __mod;
+                inc(__a[__j], __a[__j + 1]);
+                __a[__j + 1] = __y;
+            }
+            for (int __mid = 2; __mid < __n; __mid <<= 1)
+                for (int __w = 0, __j = 0; __j < __n; __j += __mid << 1, ++__w)
+                    for (int __k = 0; __k < __mid; __k += 2) {
+                        int __x = 1ll * __pw[__w] *
+                                  (__mod + __a[__j + __k] -
+                                   __a[__j + __mid + __k]) % __mod;
+                        int __y = 1ll * __pw[__w] *
+                                  (__mod + __a[__j + __k + 1] -
+                                   __a[__j + __mid + __k + 1]) % __mod;
+                        inc(__a[__j + __k], __a[__j + __mid + __k]);
+                        __a[__j + __mid + __k] = __x;
+                        inc(__a[__j + __k + 1], __a[__j + __mid + __k + 1]);
+                        __a[__j + __mid + __k + 1] = __y;
+                    }
+            reverse(__a.begin() + 1, __a.end());
+            int __iv = qpow(__n, __mod - 2);
+            for (int i = 0; i < __n; ++i)
+                __a[i] = 1ll * __a[i] * __iv % __mod;
+        }
+
+        void mult(const vector<int> &__a, const vector<int> &__b,
+                  vector<int> &__c, int __n, int __m) {
+            init(__n + __m);
+            vector<int> __ta(__lim), __tb(__lim);
+            for (int i = 0; i < __lim; ++i) {
+                __ta[i] = i < (int)__a.size() ? __a[i] % __mod : 0;
+                __tb[i] = i < (int)__b.size() ? __b[i] % __mod : 0;
+            }
+            DIF(__ta), DIF(__tb);
+            for (int i = 0; i < __lim; ++i)
+                __ta[i] = 1ll * __ta[i] * __tb[i] % __mod;
+            DIT(__ta);
+            __c.resize(__m + 1);
+            for (int i = 0; i <= __m; ++i)
+                __c[i] = __ta[i + __n];
+        }
+    };
+
+    poly Chirp_Z(poly __f, int __c, int __m) {
+        int __n = __f.size();
+        if (!__n || !__m)
+            return poly();
+        if (__c == 0) {
+            poly __res(__m);
+            long long __s = 0;
+            for (int i = 0; i < __n; ++i)
+                __s = mod(__s + __f[i]);
+            __res[0] = __s;
+            for (int i = 1; i < __m; ++i)
+                __res[i] = __f[0];
+            return __res;
+        }
+        int __last = __m - 1, __up = max(__n, __m) + 1;
+        vector<int> __cpw(__up + 1);
+        __cpw[0] = __cpw[1] = 1;
+        int __ic = Pre::Inv(__c);
+        for (int i = 2, __d = __ic; i <= __up; ++i) {
+            __cpw[i] = mod(1ll * __cpw[i - 1] * __d);
+            __d = mod(1ll * __d * __ic);
+        }
+        vector<int> __a(__n), __b(__n + __last + 1);
+        for (int i = -__n + 1; i <= __last; ++i) {
+            int __x = i < 0 ? 1 - i : i;
+            __b[__n + i] = __cpw[__x];
+        }
+        for (int i = 2, __d = __c; i <= __up; ++i) {
+            __cpw[i] = mod(1ll * __cpw[i - 1] * __d);
+            __d = mod(1ll * __d * __c);
+        }
+        for (int i = 0; i < __n; ++i)
+            __a[i] = mod(1ll * __cpw[i + 1] * __f[i]);
+        NTT3<998244353> __n0;
+        NTT3<469762049> __n1;
+        NTT3<1004535809> __n2;
+        vector<int> __c0, __c1, __c2;
+        __n0.mult(__a, __b, __c0, __n, __last);
+        __n1.mult(__a, __b, __c1, __n, __last);
+        __n2.mult(__a, __b, __c2, __n, __last);
+        using i128 = __int128_t;
+        const int __m0 = 998244353, __m1 = 469762049, __m2 = 1004535809;
+        i128 __M = (i128)__m0 * __m1 * __m2;
+        i128 __x0 = (i128)__m1 * __m2 *
+                    __n0.qpow(1ll * __m1 * __m2 % __m0, __m0 - 2);
+        i128 __x1 = (i128)__m0 * __m2 *
+                    __n1.qpow(1ll * __m0 * __m2 % __m1, __m1 - 2);
+        i128 __x2 = (i128)__m0 * __m1 *
+                    __n2.qpow(1ll * __m0 * __m1 % __m2, __m2 - 2);
         poly __res(__m);
-        long long __v = 1, __vp = 1;
         for (int i = 0; i < __m; ++i) {
-            __res[i] = mod(__t[__l - 1 - i] * __v);
-            __v = mod(1ll * __v * __vp), __vp = mod(1ll * __vp * __ic);
+            i128 __v = (i128)__c0[i] * __x0 + (i128)__c1[i] * __x1 +
+                       (i128)__c2[i] * __x2;
+            __v %= __M;
+            __res[i] = mod((long long)(__v % P) * __cpw[i]);
         }
         return __res;
     }
@@ -1568,8 +1714,8 @@ using CCNHLR::Bostam_Mori_CCNHLR;
 #if __INCLUDE_LEVEL__ == 0
 
 inline void work() {
-    int n, m;
-    read(n), read(m);
+    int n,c,m;
+    read(n),read(c),read(m);
 #if POLYBOARD_P_FIXED
     Pre::initYG();
 #else
@@ -1577,8 +1723,8 @@ inline void work() {
     read(p);
     Pre::init(p);
 #endif
-    poly f = pin(n + 1), g = pin(m + 1);
-    ppri(f * g, n + m + 1);
+    poly f = pin(n);
+    ppri(Chirp_Z(f, c, m),m);
 }
 
 signed main() {
