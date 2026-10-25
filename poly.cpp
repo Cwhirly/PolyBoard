@@ -1566,19 +1566,23 @@ using CCNHLR::Bostam_Mori_CCNHLR;
 
 #if __INCLUDE_LEVEL__ == 0
 
-int n, m, c;
-
 inline void work() {
-    poly f,g;
-    read(n);
-    read(m);
-    f = pin(n);
+    int n, m;
+    read(n), read(m);
+#if POLYBOARD_P_FIXED
+    Pre::initYG();
+#else
+    int p;
+    read(p);
+    Pre::init(p);
+#endif
+    poly f = pin(n + 1), g = pin(m + 1);
+    ppri(f * g, n + m + 1);
 }
 
 signed main() {
     ios::sync_with_stdio(false);
     cin.tie(0), cout.tie(0);
-    Pre::initYG();
     work();
     return 0;
 }
