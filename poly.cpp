@@ -1,5 +1,4 @@
 #include <bits/stdc++.h>
-#include <unistd.h>
 
 using namespace std;
 namespace IO {
@@ -8,7 +7,7 @@ namespace IO {
         *oS = obuf, *oT = oS + __SIZE - 1, _c, qu[55];
     int __f, qr, _eof;
 #define Gc()                                                                   \
-    (iS == iT ? (iT = (iS = ibuf) + ::read(0, ibuf, __SIZE),             \
+    (iS == iT ? (iT = (iS = ibuf) + fread(ibuf, 1, __SIZE, stdin),       \
                  (iS == iT ? EOF : *iS++))                                     \
               : *iS++)
 
