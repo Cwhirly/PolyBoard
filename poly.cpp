@@ -441,8 +441,21 @@ namespace POLY {
         poly Trans(poly __f, int __c);
     }
 
+    class sps;
+
+    namespace UCSF {
+        sps Dx(const sps &__f);
+        sps Integ(const sps &__f);
+        sps Inv(const sps &__f);
+        sps Ln(const sps &__f);
+        sps Exp(const sps &__f);
+        sps pin(int __n);
+        void ppri(const sps &__f, int __n);
+    }
+
     using namespace UCPF;
     using namespace PIO;
+    using namespace UCSF;
 
     const constexpr int MUL_LIM = 4096;
 
@@ -957,28 +970,31 @@ namespace POLY {
 
         sps Subset(const sps &__g) const { return *this * __g; }
 
-        sps Dx() const {
-            int __n = size();
+    };
+
+    namespace UCSF {
+        sps Dx(const sps &__f) {
+            int __n = __f.size();
             sps __r(__n);
             for (int i = 0; i < __n; ++i)
-                __r[i] = mod(1ll * a[i] * __builtin_popcount(i));
+                __r[i] = mod(1ll * __f[i] * __builtin_popcount(i));
             return __r;
         }
 
-        sps Integ() const {
-            int __n = size();
+        sps Integ(const sps &__f) {
+            int __n = __f.size();
             sps __r(__n);
             for (int i = 1; i < __n; ++i)
-                __r[i] = mod(1ll * a[i] * Pre::Inv(__builtin_popcount(i)));
+                __r[i] = mod(1ll * __f[i] * Pre::Inv(__builtin_popcount(i)));
             return __r;
         }
 
-        sps Inv() const {
-            int __n = size(), __k = __lg(__n);
+        sps Inv(const sps &__f) {
+            int __n = __f.size(), __k = __lg(__n);
             sps __g(__n);
-            __g[0] = Pre::Inv(a[0]);
+            __g[0] = Pre::Inv(__f[0]);
             for (int __m = 1; __m <= __k; __m <<= 1) {
-                sps __t = *this * __g;
+                sps __t = __f * __g;
                 for (int i = 0; i < __n; ++i)
                     __t[i] = i ? mod(P - __t[i]) : mod(2 - __t[0]);
                 __g = __g * __t;
@@ -986,22 +1002,39 @@ namespace POLY {
             return __g;
         }
 
-        sps Ln() const { return (Dx() * Inv()).Integ(); }
+        sps Ln(const sps &__f) { return Integ(Dx(__f) * Inv(__f)); }
 
-        sps Exp() const {
-            int __n = size(), __k = __lg(__n);
+        sps Exp(const sps &__f) {
+            int __n = __f.size(), __k = __lg(__n);
             sps __g(__n);
             __g[0] = 1;
             for (int __m = 1; __m <= __k; __m <<= 1) {
-                sps __l = __g.Ln(), __t(__n);
+                sps __l = Ln(__g), __t(__n);
                 for (int i = 0; i < __n; ++i)
-                    __t[i] = i ? mod(P + a[i] - __l[i])
-                               : mod(1 + a[i] - __l[i]);
+                    __t[i] = i ? mod(P + __f[i] - __l[i])
+                               : mod(1 + __f[i] - __l[i]);
                 __g = __g * __t;
             }
             return __g;
         }
-    };
+
+        sps pin(int __n) {
+            int __s = 1 << __n;
+            sps __f(__s);
+            for (int i = 0; i < __s; ++i)
+                read(__f[i]);
+            return __f;
+        }
+
+        void ppri(const sps &__f, int __n) {
+            int __s = 1 << __n;
+            for (int i = 0; i < __s; ++i) {
+                print(i < __f.size() ? Pint::tp(__f[i]) : 0);
+                pc(' ');
+            }
+            pc('\n');
+        }
+    }
 }
 
 using namespace POLY;
@@ -1024,10 +1057,10 @@ poly Integ(const poly &__f) {
 
 poly UCPF::Ln(poly __f) {
     int __n = __f.size();
-    poly __d = Dx(__f);
+    poly __d = ::Dx(__f);
     __d *= ~__f;
     __d.resize(__n);
-    __d = Integ(__d);
+    __d = ::Integ(__d);
     __d.resize(__n);
     return __d;
 }
@@ -1080,9 +1113,9 @@ poly UCPF::ArcSin(poly __f) {
     __f[0]++;
     __f = Sqrt(__f);
     __f = ~__f;
-    __f *= Dx(__t);
+    __f *= ::Dx(__t);
     __f.resize(__n);
-    __f = Integ(__f);
+    __f = ::Integ(__f);
     __f.resize(__n);
     return __f;
 }
@@ -1098,9 +1131,9 @@ poly UCPF::ArcTan(poly __f) {
     __f.resize(__n);
     __f[0]++;
     __f = ~__f;
-    __f *= Dx(__t);
+    __f *= ::Dx(__t);
     __f.resize(__n);
-    __f = Integ(__f);
+    __f = ::Integ(__f);
     __f.resize(__n);
     return __f;
 }
@@ -1612,8 +1645,8 @@ using CCNHLR::Bostam_Mori_CCNHLR;
 #if __INCLUDE_LEVEL__ == 0
 
 inline void work() {
-    int n,c,m;
-    read(n),read(c),read(m);
+    int n;
+    read(n);
 #if POLYBOARD_P_FIXED
     Pre::initYG();
 #else
@@ -1621,8 +1654,8 @@ inline void work() {
     read(p);
     Pre::init(p);
 #endif
-    poly f = pin(n);
-    ppri(Chirp_Z(f, c, m),m);
+    sps f = UCSF::pin(n);
+    UCSF::ppri(f, n);
 }
 
 signed main() {

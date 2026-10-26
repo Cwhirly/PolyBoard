@@ -256,12 +256,15 @@ poly to_poly() const;
 | `f * g` | 子集卷积，别名 `f.Subset(g)`；`h_S = Σ_{T ⊆ S} f_T · g_{S \ T}` |
 | `f * k`、`f *= k` | 数乘，`k` 可为负 |
 | `f.Fwtand(x)`、`Fwtor`、`Fwtxor`、`Fmtor` | 原地沃尔什变换；非零为正向，`0` 为逆向；结果归一到 `[0, P)` |
-| `f.Dx()` | rank 导数：`(Df)(S) = abs(S) f(S)` |
-| `f.Integ()` | rank 积分：`(If)(S) = f(S)/abs(S)`，空集为 0 |
-| `f.Inv()` | 子集卷积逆，要求 `f[∅]` 可逆 |
-| `f.Ln()` | `ln(f/f[∅])`，常数项为 0，要求 `f[∅]` 可逆 |
-| `f.Exp()` | `exp(f)`，要求 `f[∅] = 0` |
+| `UCSF::Dx(f)` | rank 导数：`(Df)(S) = abs(S) f(S)` |
+| `UCSF::Integ(f)` | rank 积分：`(If)(S) = f(S)/abs(S)`，空集为 0 |
+| `UCSF::Inv(f)` | 子集卷积逆，要求 `f[∅]` 可逆 |
+| `UCSF::Ln(f)` | `ln(f/f[∅])`，常数项为 0，要求 `f[∅]` 可逆 |
+| `UCSF::Exp(f)` | `exp(f)`，要求 `f[∅] = 0` |
+| `UCSF::pin(n)` | 读入 `2^n` 个数，返回长度 `2^n` 的 `sps` |
+| `UCSF::ppri(f, n)` | 输出 `2^n` 项，不足补 0 |
 
+- `UCSF` 的函数已通过 `using namespace UCSF` 暴露。`pin` / `ppri` 与 `PIO` 的多项式版本同名，调用集合幂级数版本时写 `UCSF::pin` / `UCSF::ppri`。
 - 两侧长度必须相同且为 2 的幂。
 - `&`、`|`、`^` 复杂度 `O(n log n)`；子集卷积 `O(n log² n)`，额外空间 `O(n log n)`。
 - `sps(poly)` 为 `explicit`，`poly` 不会隐式转换为 `sps`。

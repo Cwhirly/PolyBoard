@@ -1,6 +1,6 @@
 ## 1.20.0
 
-- `sps` 新增 `Dx`、`Integ`、`Inv`、`Ln`、`Exp`。`Dx` / `Integ` 使用集合大小（rank）作为导数变量，`Ln = Integ(Dx * Inv)`，`Exp` 使用牛顿迭代。
+- 新增 `UCSF`：`Dx`、`Integ`、`Inv`、`Ln`、`Exp`，以及 `pin(n)` / `ppri(f, n)`（按 `2^n` 读写）。`Dx` / `Integ` 使用集合大小（rank）作为导数变量，`Ln = Integ(Dx * Inv)`，`Exp` 使用牛顿迭代。
 - `Ln` 返回 `ln(f/f[∅])`，常数项为 0；`Exp` 要求 `f[∅] = 0`；`Inv` 要求 `f[∅]` 可逆。
 - 同步 Rust 1.1.0。
 
