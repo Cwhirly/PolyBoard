@@ -1,4 +1,4 @@
-# PolyBoard Rust 1.0.0
+# PolyBoard Rust 1.1.0
 
 Rust port of the C++ PolyBoard template. The Rust version starts at 1.0.0 and mirrors C++ 1.19.0; later C++ updates are synced here.
 
@@ -12,6 +12,7 @@ Rust port of the C++ PolyBoard template. The Rust version starts at 1.0.0 and mi
 | FPS `ln` / `exp` / `sqrt` / `pow` | yes | `fps` |
 | Matrix add/sub/mul/pow/gauss/inv/det | yes | `matrix::Matrix` |
 | FWT / subset convolution | yes | `fwt::Sps` |
+| SPS `Dx` / `Integ` / `Inv` / `Ln` / `Exp` | yes | `fwt::Sps` |
 | Stirling row/column | yes | `stirling` |
 | Chirp-Z | yes | `chirpz::chirp_z` |
 | FPS trig / `Trans` | yes | `fps` |

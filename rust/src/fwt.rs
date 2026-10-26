@@ -1,6 +1,6 @@
 use crate::modint::Mod;
 use crate::poly::Poly;
-use std::ops::{BitAnd, BitOr, BitXor, Mul};
+use std::ops::{Add, BitAnd, BitOr, BitXor, Mul, Sub};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Sps {
@@ -142,6 +142,83 @@ impl Sps {
         a
     }
 
+    pub fn dx(&self) -> Self {
+        let mut r = self.clone();
+        for (i, x) in r.a.iter_mut().enumerate() {
+            *x = self.m.mul(*x, i.count_ones());
+        }
+        r
+    }
+
+    pub fn integ(&self) -> Self {
+        let mut r = self.clone();
+        r.a[0] = 0;
+        for (i, x) in r.a.iter_mut().enumerate().skip(1) {
+            let inv = self.m.inv(i.count_ones()).expect("rank not invertible");
+            *x = self.m.mul(*x, inv);
+        }
+        r
+    }
+
+    pub fn inv(&self) -> Self {
+        let n = self.len();
+        let k = n.trailing_zeros();
+        let mut g = Sps::new(self.m, n);
+        g.set(
+            0,
+            self.m
+                .inv(self.a[0])
+                .expect("empty-set coefficient not invertible"),
+        );
+        let mut step = 1u32;
+        while step <= k {
+            let fg = self.subset(&g);
+            let mut t = Sps::new(self.m, n);
+            for i in 0..n {
+                t.set(
+                    i,
+                    if i == 0 {
+                        self.m.sub(2 % self.m.p(), fg.get(0))
+                    } else {
+                        self.m.neg(fg.get(i))
+                    },
+                );
+            }
+            g = g.subset(&t);
+            step <<= 1;
+        }
+        g
+    }
+
+    pub fn ln(&self) -> Self {
+        self.dx().subset(&self.inv()).integ()
+    }
+
+    pub fn exp(&self) -> Self {
+        let n = self.len();
+        let k = n.trailing_zeros();
+        let mut g = Sps::new(self.m, n);
+        g.set(0, 1);
+        let mut step = 1u32;
+        while step <= k {
+            let l = g.ln();
+            let mut t = Sps::new(self.m, n);
+            for i in 0..n {
+                t.set(
+                    i,
+                    if i == 0 {
+                        self.m.add(1, self.m.sub(self.get(i), l.get(i)))
+                    } else {
+                        self.m.sub(self.get(i), l.get(i))
+                    },
+                );
+            }
+            g = g.subset(&t);
+            step <<= 1;
+        }
+        g
+    }
+
     pub fn subset(&self, other: &Self) -> Self {
         self.assert_same(other);
         let n = self.a.len();
@@ -227,6 +304,46 @@ impl Mul for &Sps {
     }
 }
 
+impl Add for &Sps {
+    type Output = Sps;
+    fn add(self, rhs: &Sps) -> Sps {
+        assert_eq!(self.m, rhs.m);
+        assert_eq!(self.a.len(), rhs.a.len());
+        let mut r = self.clone();
+        for i in 0..r.a.len() {
+            r.a[i] = self.m.add(self.a[i], rhs.a[i]);
+        }
+        r
+    }
+}
+
+impl Sub for &Sps {
+    type Output = Sps;
+    fn sub(self, rhs: &Sps) -> Sps {
+        assert_eq!(self.m, rhs.m);
+        assert_eq!(self.a.len(), rhs.a.len());
+        let mut r = self.clone();
+        for i in 0..r.a.len() {
+            r.a[i] = self.m.sub(self.a[i], rhs.a[i]);
+        }
+        r
+    }
+}
+
+impl Add for Sps {
+    type Output = Sps;
+    fn add(self, rhs: Sps) -> Sps {
+        &self + &rhs
+    }
+}
+
+impl Sub for Sps {
+    type Output = Sps;
+    fn sub(self, rhs: Sps) -> Sps {
+        &self - &rhs
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -266,5 +383,36 @@ mod tests {
         assert_eq!(got_sub.as_slice(), want.as_slice());
         let _ = got;
         let _ = naive_and(&a, &b, m);
+    }
+
+    #[test]
+    fn ln_exp_dx_integ() {
+        let m = Mod::new(998244353);
+        for n in [1usize, 2, 4, 8, 16] {
+            let mut f = Sps::from_vec(
+                m,
+                (0..n).map(|i| ((i * 37 + 11) % 998244353) as u32).collect(),
+            );
+            f.set(0, 1);
+            let e = f.ln().exp();
+            assert_eq!(f, e);
+            let mut g = Sps::new(m, n);
+            for i in 1..n {
+                g.set(i, (i * 53 + 7) as u32);
+            }
+            let l = g.exp().ln();
+            assert_eq!(g, l);
+            let d = f.dx().integ();
+            assert_eq!(d.get(0), 0);
+            for i in 1..n {
+                assert_eq!(d.get(i), f.get(i));
+            }
+            let inv = f.inv();
+            let id = f.subset(&inv);
+            assert_eq!(id.get(0), 1);
+            for i in 1..n {
+                assert_eq!(id.get(i), 0);
+            }
+        }
     }
 }
