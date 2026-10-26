@@ -1,7 +1,7 @@
 ## 1.20.0
 
-- 新增 `UCSF`：`Dx`、`Integ`、`Inv`、`Ln`、`Exp`，以及 `pin(n)` / `ppri(f, n)`（按 `2^n` 读写）。`Dx` / `Integ` 使用集合大小（rank）作为导数变量；`Ln` / `Exp` 使用 ranked zeta 加每个集合的 `O(k^2)` 递推，整体 `O(nk^2)`。
-- `Ln` 返回 `ln(f/f[∅])`，常数项为 0；`Exp` 要求 `f[∅] = 0`；`Inv` 要求 `f[∅]` 可逆。
+- 新增 `sps::operator~` 子集卷积逆，以及 `UCSF` 的 `Dx`、`Integ`、`Ln`、`Exp`、`pin(n)` / `ppri(f, n)`（按 `2^n` 读写）。`Dx` / `Integ` 使用集合大小（rank）作为导数变量；`~` / `Ln` / `Exp` 使用 ranked zeta 加每个集合的 `O(k^2)` 递推，整体 `O(nk^2)`。
+- `Ln` 返回 `ln(f/f[∅])`，常数项为 0；`Exp` 要求 `f[∅] = 0`；`~f` 要求 `f[∅]` 可逆。
 - 同步 Rust 1.1.0。
 
 # 更新记录

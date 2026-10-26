@@ -446,7 +446,6 @@ namespace POLY {
     namespace UCSF {
         sps Dx(const sps &__f);
         sps Integ(const sps &__f);
-        sps Inv(const sps &__f);
         sps Ln(const sps &__f);
         sps Exp(const sps &__f);
         sps pin(int __n);
@@ -922,6 +921,47 @@ namespace POLY {
             return __f;
         }
 
+        sps operator~() const {
+            int __n = size(), __k = __lg(__n);
+            vector<vector<int>> __F(__k + 1, vector<int>(__n)),
+                __G(__k + 1, vector<int>(__n));
+            for (int S = 0; S < __n; ++S)
+                __F[__builtin_popcount(S)][S] = a[S];
+            for (int i = 0; i <= __k; ++i) {
+                int *__f = __F[i].data();
+                for (int __len = 1; __len < __n; __len <<= 1)
+                    for (int L = 0; L < __n; L += __len << 1)
+                        for (int j = 0; j < __len; ++j)
+                            __f[L + j + __len] =
+                                add(__f[L + j + __len], __f[L + j]);
+            }
+            int __iv = Pre::Inv(a[0]);
+            vector<int> __d(__k + 1);
+            for (int S = 0; S < __n; ++S) {
+                __d[0] = __iv;
+                for (int i = 1; i <= __k; ++i) {
+                    unsigned __int128 __s = 0;
+                    for (int j = 1; j <= i; ++j)
+                        __s += (unsigned long long)__F[j][S] * __d[i - j];
+                    __d[i] = mod(-(long long)(__s % P) * __iv % P);
+                }
+                for (int i = 0; i <= __k; ++i)
+                    __G[i][S] = __d[i];
+            }
+            for (int i = 0; i <= __k; ++i) {
+                int *__g = __G[i].data();
+                for (int __len = 1; __len < __n; __len <<= 1)
+                    for (int L = 0; L < __n; L += __len << 1)
+                        for (int j = 0; j < __len; ++j)
+                            __g[L + j + __len] =
+                                del(__g[L + j + __len], __g[L + j]);
+            }
+            sps __r(__n);
+            for (int S = 0; S < __n; ++S)
+                __r[S] = __G[__builtin_popcount(S)][S];
+            return __r;
+        }
+
         sps operator*(const sps &__g) const {
             int __n = size(), __lgn = __lg(__n);
             vector<sps> __F(__lgn + 1, sps(__n)), __G(__lgn + 1, sps(__n)),
@@ -987,19 +1027,6 @@ namespace POLY {
             for (int i = 1; i < __n; ++i)
                 __r[i] = mod(1ll * __f[i] * Pre::Inv(__builtin_popcount(i)));
             return __r;
-        }
-
-        sps Inv(const sps &__f) {
-            int __n = __f.size(), __k = __lg(__n);
-            sps __g(__n);
-            __g[0] = Pre::Inv(__f[0]);
-            for (int __m = 1; __m <= __k; __m <<= 1) {
-                sps __t = __f * __g;
-                for (int i = 0; i < __n; ++i)
-                    __t[i] = i ? mod(P - __t[i]) : mod(2 - __t[0]);
-                __g = __g * __t;
-            }
-            return __g;
         }
 
         sps Ln(const sps &__f) {
@@ -1719,8 +1746,10 @@ using CCNHLR::Bostam_Mori_CCNHLR;
 #if __INCLUDE_LEVEL__ == 0
 
 inline void work() {
-    int n;
+    int n,a,r;
     read(n);
+    read(a);
+    read(r);
 #if POLYBOARD_P_FIXED
     Pre::initYG();
 #else
@@ -1728,9 +1757,11 @@ inline void work() {
     read(p);
     Pre::init(p);
 #endif
-    sps f = UCSF::pin(n);
-    UCSF::ppri(Exp(f), n);
-    
+    vector<int> y(n),x(n);
+    for(int i=0;i<n;i++) read(y[i]);
+    x[0]=a;
+    for(int i=1;i<n;i++) x[i]=mod(1ll*x[i-1]*r);
+    ppri(PFI(x,y),n);
 }
 
 signed main() {

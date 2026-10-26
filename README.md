@@ -256,9 +256,9 @@ poly to_poly() const;
 | `f * g` | 子集卷积，别名 `f.Subset(g)`；`h_S = Σ_{T ⊆ S} f_T · g_{S \ T}` |
 | `f * k`、`f *= k` | 数乘，`k` 可为负 |
 | `f.Fwtand(x)`、`Fwtor`、`Fwtxor`、`Fmtor` | 原地沃尔什变换；非零为正向，`0` 为逆向；结果归一到 `[0, P)` |
+| `~f` | 子集卷积逆，要求 `f[∅]` 可逆 |
 | `UCSF::Dx(f)` | rank 导数：`(Df)(S) = abs(S) f(S)` |
 | `UCSF::Integ(f)` | rank 积分：`(If)(S) = f(S)/abs(S)`，空集为 0 |
-| `UCSF::Inv(f)` | 子集卷积逆，要求 `f[∅]` 可逆 |
 | `UCSF::Ln(f)` | `ln(f/f[∅])`，常数项为 0，要求 `f[∅]` 可逆 |
 | `UCSF::Exp(f)` | `exp(f)`，要求 `f[∅] = 0` |
 | `UCSF::pin(n)` | 读入 `2^n` 个数，返回长度 `2^n` 的 `sps` |
@@ -670,7 +670,7 @@ if (!f.inv(g)) {
 
 1.19.0 还新增了 `POLYBOARD_P_FIXED` 与 `mod`：`P_FIXED=0` 时 `P` 由输入决定，必须 `ATN=0`，并在使用前调用 `Pre::init(p)`；`poly` 与 `matrix` 的模运算统一走 `mod`。
 
-1.20.0 新增 `sps` 的 `Dx`、`Integ`、`Inv`、`Ln`、`Exp`，使用 rank 导数/积分和子集卷积牛顿迭代。
+1.20.0 新增 `sps` 的 `operator~`（子集卷积逆）和 `UCSF` 的 `Dx`、`Integ`、`Ln`、`Exp`。
 
 ### 9.2 矩阵 2.1.x
 
