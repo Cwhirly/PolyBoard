@@ -1,6 +1,6 @@
 # PolyBoard Rust 1.1.0
 
-Rust port of the C++ PolyBoard template. The Rust version starts at 1.0.0 and mirrors C++ 1.19.0; later C++ updates are synced here.
+Rust port of the C++ PolyBoard template. Rust 1.1.0 mirrors C++ 1.20.0; later C++ updates are synced here.
 
 ## Status
 
