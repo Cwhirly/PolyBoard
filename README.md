@@ -182,7 +182,7 @@ void work() {
 | --- | --- | --- |
 | `f * g`、`f & g` | `f.size() + g.size() - 1 ≤ NL` | NTT 长度 |
 | `~f`、`f / g`、`f % g` | `n ≤ NL / 2`（约 `2^20`） | Newton 迭代内部 NTT 长度 |
-| `Chirp_Z` | `n + m ≤ 2^21` | 三次 NTT + CRT 的中间乘积 |
+| `Chirp_Z` | `n + m ≤ NL / 2 + 1` | 内部卷积长度 |
 | `Dx`、`Integ`、`Ln`、`Trans`、`Stirling`、`Staling`、`FFP` | `n ≤ N` | `ny/fac/ifac` 表长 |
 | `Exp`、`Sqrt`、`Sin`、`Cos`、`Tan`、`ArcSin`、`ArcCos`、`ArcTan` | `n ≤ NL / 4`（约 `2^19`） | 算法内部需要 `4 · dep ≤ NL` |
 | `PMPE`、`PFI` | 点数 `m ≤ (NL - 2) / 3` | 内部卷积与段树内存 |
@@ -412,9 +412,7 @@ poly Chirp_Z(poly f, int c, int m);   // f(c^0), f(c^1), ..., f(c^{m-1})
 int Ci2(int i);                       // C(i, 2) mod (P - 1)
 ```
 
-- 返回长度 `m`，要求 `n + m ≤ 2^21`。
-- 使用三次 NTT（`998244353`、`469762049`、`1004535809`）加 CRT，只取中间一段卷积，结果精确。
-- `c = 0` 时直接按定义返回：第 0 项为系数和，其余项为 `f[0]`。
+- 返回长度 `m`，要求 `n + m ≤ NL / 2 + 1`。
 - 计算的是 `f(c^i)`，不含额外的单位根因子。需要 `f(c·ω^i)` 时，令 `c' = c·ω` 后调用。
 
 ### 5.9 斯特林数与下降幂

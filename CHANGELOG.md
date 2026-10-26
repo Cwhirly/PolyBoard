@@ -189,9 +189,8 @@
 - `Pre::initYG` 在 `ATN=0` 时跳过 NTT 旋转因子表；`LG/NL` 在 `ATN=0` 时按 FFT 长度取；`P_FIXED=0` 时由 `Pre::init(P)` 计算 `B/LG/NL`、Barrett 和阶乘/逆元表。
 - `poly` 的 `operator*=`、`operator&`、`operator~` 在 `ATN=0` 时走 `poly::MTT` / 通用牛顿迭代；`ATN=1` 保持原 NTT 路径。
 - `poly::MTT` 是 5 次 FFT（`namespace FFT` 的 `run`，DIF 正 + DIT 逆），不再占位。
-- `Chirp_Z` 改用三次 NTT（998244353 / 469762049 / 1004535809）+ CRT 的中间乘积，结果精确；`c=0` 单独处理；限制 `n+m ≤ 2^21`。
 - 验证：固定 P 的 ATN=0/1、运行时 P=998244353/1000000007/12、n=1e5/6e5、矩阵固定/运行时 1e9+7 均通过；运行时与固定路径结果一致。
-- 文件：`poly.cpp` 1737 行、`matrix.cpp` 219 行。
+- 文件：`poly.cpp` 1591 行、`matrix.cpp` 219 行。
 
 ## 附：版本与 tag 对照
 
