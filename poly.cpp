@@ -957,6 +957,51 @@ namespace POLY {
         sps Xor(const sps &__g) const { return *this ^ __g; }
 
         sps Subset(const sps &__g) const { return *this * __g; }
+
+        sps Dx() const {
+            int __n = size();
+            sps __r(__n);
+            for (int i = 0; i < __n; ++i)
+                __r[i] = mod(1ll * a[i] * __builtin_popcount(i));
+            return __r;
+        }
+
+        sps Integ() const {
+            int __n = size();
+            sps __r(__n);
+            for (int i = 1; i < __n; ++i)
+                __r[i] = mod(1ll * a[i] * Pre::Inv(__builtin_popcount(i)));
+            return __r;
+        }
+
+        sps Inv() const {
+            int __n = size(), __k = __lg(__n);
+            sps __g(__n);
+            __g[0] = Pre::Inv(a[0]);
+            for (int __m = 1; __m <= __k; __m <<= 1) {
+                sps __t = *this * __g;
+                for (int i = 0; i < __n; ++i)
+                    __t[i] = i ? mod(P - __t[i]) : mod(2 - __t[0]);
+                __g = __g * __t;
+            }
+            return __g;
+        }
+
+        sps Ln() const { return (Dx() * Inv()).Integ(); }
+
+        sps Exp() const {
+            int __n = size(), __k = __lg(__n);
+            sps __g(__n);
+            __g[0] = 1;
+            for (int __m = 1; __m <= __k; __m <<= 1) {
+                sps __l = __g.Ln(), __t(__n);
+                for (int i = 0; i < __n; ++i)
+                    __t[i] = i ? mod(P + a[i] - __l[i])
+                               : mod(1 + a[i] - __l[i]);
+                __g = __g * __t;
+            }
+            return __g;
+        }
     };
 }
 
