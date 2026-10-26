@@ -1002,20 +1002,80 @@ namespace POLY {
             return __g;
         }
 
-        sps Ln(const sps &__f) { return Integ(Dx(__f) * Inv(__f)); }
+        sps Ln(const sps &__f) {
+            int __n = __f.size(), __k = __lg(__n);
+            vector<vector<int>> __F(__k + 1, vector<int>(__n)),
+                __G(__k + 1, vector<int>(__n));
+            for (int S = 0; S < __n; ++S)
+                __F[__builtin_popcount(S)][S] = __f[S];
+            for (int i = 0; i <= __k; ++i)
+                for (int bit = 1; bit < __n; bit <<= 1)
+                    for (int S = 0; S < __n; ++S)
+                        if (S & bit)
+                            __F[i][S] = add(__F[i][S], __F[i][S ^ bit]);
+            vector<int> __ny(__k + 1);
+            for (int i = 1; i <= __k; ++i)
+                __ny[i] = Pre::Inv(i);
+            for (int S = 0; S < __n; ++S) {
+                int __iv = Pre::Inv(__F[0][S]);
+                vector<int> __c(__k + 1), __l(__k + 1);
+                for (int i = 0; i <= __k; ++i)
+                    __c[i] = mod(1ll * __F[i][S] * __iv);
+                for (int i = 1; i <= __k; ++i) {
+                    long long __s = 0;
+                    for (int j = 1; j < i; ++j)
+                        __s = (__s + 1ll * j * __l[j] % P * __c[i - j]) % P;
+                    __l[i] = mod(__c[i] - 1ll * __ny[i] * __s % P);
+                }
+                for (int i = 0; i <= __k; ++i)
+                    __G[i][S] = __l[i];
+            }
+            for (int i = 0; i <= __k; ++i)
+                for (int bit = 1; bit < __n; bit <<= 1)
+                    for (int S = 0; S < __n; ++S)
+                        if (S & bit)
+                            __G[i][S] = del(__G[i][S], __G[i][S ^ bit]);
+            sps __r(__n);
+            for (int S = 0; S < __n; ++S)
+                __r[S] = __G[__builtin_popcount(S)][S];
+            return __r;
+        }
 
         sps Exp(const sps &__f) {
             int __n = __f.size(), __k = __lg(__n);
-            sps __g(__n);
-            __g[0] = 1;
-            for (int __m = 1; __m <= __k; __m <<= 1) {
-                sps __l = Ln(__g), __t(__n);
-                for (int i = 0; i < __n; ++i)
-                    __t[i] = i ? mod(P + __f[i] - __l[i])
-                               : mod(1 + __f[i] - __l[i]);
-                __g = __g * __t;
+            vector<vector<int>> __F(__k + 1, vector<int>(__n)),
+                __G(__k + 1, vector<int>(__n));
+            for (int S = 0; S < __n; ++S)
+                __F[__builtin_popcount(S)][S] = __f[S];
+            for (int i = 0; i <= __k; ++i)
+                for (int bit = 1; bit < __n; bit <<= 1)
+                    for (int S = 0; S < __n; ++S)
+                        if (S & bit)
+                            __F[i][S] = add(__F[i][S], __F[i][S ^ bit]);
+            vector<int> __ny(__k + 1);
+            for (int i = 1; i <= __k; ++i)
+                __ny[i] = Pre::Inv(i);
+            for (int S = 0; S < __n; ++S) {
+                vector<int> __e(__k + 1);
+                __e[0] = 1;
+                for (int i = 1; i <= __k; ++i) {
+                    long long __s = 0;
+                    for (int j = 1; j <= i; ++j)
+                        __s = (__s + 1ll * j * __F[j][S] % P * __e[i - j]) % P;
+                    __e[i] = 1ll * __ny[i] * __s % P;
+                }
+                for (int i = 0; i <= __k; ++i)
+                    __G[i][S] = __e[i];
             }
-            return __g;
+            for (int i = 0; i <= __k; ++i)
+                for (int bit = 1; bit < __n; bit <<= 1)
+                    for (int S = 0; S < __n; ++S)
+                        if (S & bit)
+                            __G[i][S] = del(__G[i][S], __G[i][S ^ bit]);
+            sps __r(__n);
+            for (int S = 0; S < __n; ++S)
+                __r[S] = __G[__builtin_popcount(S)][S];
+            return __r;
         }
 
         sps pin(int __n) {
@@ -1655,7 +1715,7 @@ inline void work() {
     Pre::init(p);
 #endif
     sps f = UCSF::pin(n);
-    UCSF::ppri(f, n);
+    UCSF::ppri(Exp(f), n);
 }
 
 signed main() {

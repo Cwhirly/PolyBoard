@@ -265,6 +265,7 @@ poly to_poly() const;
 | `UCSF::ppri(f, n)` | 输出 `2^n` 项，不足补 0 |
 
 - `UCSF` 的函数已通过 `using namespace UCSF` 暴露。`pin` / `ppri` 与 `PIO` 的多项式版本同名，调用集合幂级数版本时写 `UCSF::pin` / `UCSF::ppri`。
+- `UCSF::Ln` / `UCSF::Exp` 先做 ranked zeta，再对每个集合做 `O(k^2)` 的幂级数递推，整体 `O(nk^2)`。
 - 两侧长度必须相同且为 2 的幂。
 - `&`、`|`、`^` 复杂度 `O(n log n)`；子集卷积 `O(n log² n)`，额外空间 `O(n log n)`。
 - `sps(poly)` 为 `explicit`，`poly` 不会隐式转换为 `sps`。
