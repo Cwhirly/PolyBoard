@@ -136,8 +136,8 @@ impl Poly {
     pub fn div_rem(&self, other: &Self) -> (Self, Self) {
         self.assert_same(other);
         assert!(
-            !other.a.is_empty() && other.a[0] != 0,
-            "divisor must have invertible constant term"
+            !other.a.is_empty() && *other.a.last().unwrap() != 0,
+            "divisor must have invertible leading coefficient"
         );
         if self.a.len() < other.a.len() {
             return (Poly::zero(self.m), self.clone());
@@ -152,8 +152,24 @@ impl Poly {
         let mut q = qr;
         q.rev();
         q.resize(n - m + 1);
-        let r = self - &(&q * other);
-        (q, r.trunc(m - 1))
+        let mut r = self - &(&q * other);
+        while r.a.last() == Some(&0) {
+            r.a.pop();
+        }
+        (q, r)
+    }
+
+    pub fn high_mul(&self, other: &Self) -> Self {
+        self.assert_same(other);
+        assert!(self.len() >= other.len(), "left operand must be longer");
+        let n = self.len();
+        let m = other.len();
+        let prod = self * other;
+        let mut r = Poly::new(self.m, n - m + 1);
+        for i in 0..(n - m + 1) {
+            r.set(i, prod.coeff(m - 1 + i));
+        }
+        r
     }
 
     pub fn pow_mod_x(&self, mut k: u64, n: usize) -> Self {
@@ -339,6 +355,16 @@ mod tests {
         assert_eq!((&f + &g).as_slice(), &[5, 7, 3]);
         assert_eq!((&f - &g).as_slice(), &[m.sub(1, 4), m.sub(2, 5), 3]);
         assert_eq!((&f * &g).as_slice(), &[4, 13, 22, 15]);
+    }
+
+    #[test]
+    fn high_part() {
+        let m = Mod::new(998244353);
+        let f = Poly::from_vec(m, vec![1, 2, 3, 4, 5]);
+        let g = Poly::from_vec(m, vec![2, 3]);
+        let h = f.high_mul(&g);
+        let prod = &f * &g;
+        assert_eq!(h.as_slice(), &prod.as_slice()[1..5]);
     }
 
     #[test]

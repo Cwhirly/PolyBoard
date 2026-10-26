@@ -8,15 +8,15 @@ Rust port of the C++ PolyBoard template. The Rust version starts at 1.0.0 and mi
 | --- | --- | --- |
 | Modular arithmetic / Barrett | yes | `modint::Mod` |
 | NTT / arbitrary-modulus convolution | yes | `ntt::convolution`（单 NTT 或三素数 CRT） |
-| `poly` basics, inverse, div/rem, pow | yes | `poly::Poly` |
+| `poly` basics, inverse, div/rem, pow, high part | yes | `poly::Poly` |
 | FPS `ln` / `exp` / `sqrt` / `pow` | yes | `fps` |
 | Matrix add/sub/mul/pow/gauss/inv/det | yes | `matrix::Matrix` |
 | FWT / subset convolution | yes | `fwt::Sps` |
 | Stirling row/column | yes | `stirling` |
 | Chirp-Z | yes | `chirpz::chirp_z` |
-| FPS trig / `Trans` | yes | TODO |
-| Multipoint evaluation / interpolation | yes | TODO |
-| FFP / Staling / CCHLR / CCNHLR | yes | TODO |
+| FPS trig / `Trans` | yes | `fps` |
+| Multipoint evaluation / interpolation | yes | `multipoint` |
+| FFP / Staling / CCHLR / CCNHLR | yes | `ffp` / `staling` / `cchlr` |
 
 ## Build
 

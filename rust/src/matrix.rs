@@ -146,7 +146,10 @@ impl Matrix {
                     break;
                 }
             }
-            let p = piv?;
+            let p = match piv {
+                Some(p) => p,
+                None => return Some(0),
+            };
             if p != col {
                 a.swap(p, col);
                 det = self.md.neg(det);
