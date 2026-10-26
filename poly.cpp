@@ -1002,7 +1002,41 @@ namespace POLY {
             return __g;
         }
 
-        sps Ln(const sps &__f) {
+        vector<int> subset_conv(const vector<int> &__a,
+                                const vector<int> &__b, int __s) {
+            int __n = 1 << __s;
+            vector<vector<int>> __F(__s + 1, vector<int>(__n)),
+                __G(__s + 1, vector<int>(__n)),
+                __H(__s + 1, vector<int>(__n));
+            for (int i = 0; i < __n; ++i) {
+                int __p = __builtin_popcount(i);
+                __F[__p][i] = __a[i];
+                __G[__p][i] = __b[i];
+            }
+            for (int i = 0; i <= __s; ++i)
+                for (int bit = 1; bit < __n; bit <<= 1)
+                    for (int S = 0; S < __n; ++S)
+                        if (S & bit) {
+                            __F[i][S] = add(__F[i][S], __F[i][S ^ bit]);
+                            __G[i][S] = add(__G[i][S], __G[i][S ^ bit]);
+                        }
+            for (int i = 0; i <= __s; ++i)
+                for (int j = 0; i + j <= __s; ++j)
+                    for (int S = 0; S < __n; ++S)
+                        __H[i + j][S] =
+                            mod(__H[i + j][S] + 1ll * __F[i][S] * __G[j][S]);
+            for (int i = 0; i <= __s; ++i)
+                for (int bit = 1; bit < __n; bit <<= 1)
+                    for (int S = 0; S < __n; ++S)
+                        if (S & bit)
+                            __H[i][S] = del(__H[i][S], __H[i][S ^ bit]);
+            vector<int> __c(__n);
+            for (int i = 0; i < __n; ++i)
+                __c[i] = __H[__builtin_popcount(i)][i];
+            return __c;
+        }
+
+        sps inverse_ranked(const sps &__f) {
             int __n = __f.size(), __k = __lg(__n);
             vector<vector<int>> __F(__k + 1, vector<int>(__n)),
                 __G(__k + 1, vector<int>(__n));
@@ -1013,22 +1047,20 @@ namespace POLY {
                     for (int S = 0; S < __n; ++S)
                         if (S & bit)
                             __F[i][S] = add(__F[i][S], __F[i][S ^ bit]);
-            vector<int> __ny(__k + 1);
-            for (int i = 1; i <= __k; ++i)
-                __ny[i] = Pre::Inv(i);
+            int __iv = Pre::Inv(__f[0]);
             for (int S = 0; S < __n; ++S) {
-                int __iv = Pre::Inv(__F[0][S]);
-                vector<int> __c(__k + 1), __l(__k + 1);
+                vector<int> __c(__k + 1), __d(__k + 1);
                 for (int i = 0; i <= __k; ++i)
-                    __c[i] = mod(1ll * __F[i][S] * __iv);
+                    __c[i] = __F[i][S];
+                __d[0] = __iv;
                 for (int i = 1; i <= __k; ++i) {
                     long long __s = 0;
-                    for (int j = 1; j < i; ++j)
-                        __s = (__s + 1ll * j * __l[j] % P * __c[i - j]) % P;
-                    __l[i] = mod(__c[i] - 1ll * __ny[i] * __s % P);
+                    for (int j = 1; j <= i; ++j)
+                        __s = (__s + 1ll * __c[j] * __d[i - j]) % P;
+                    __d[i] = mod(-1ll * __iv * __s % P);
                 }
                 for (int i = 0; i <= __k; ++i)
-                    __G[i][S] = __l[i];
+                    __G[i][S] = __d[i];
             }
             for (int i = 0; i <= __k; ++i)
                 for (int bit = 1; bit < __n; bit <<= 1)
@@ -1041,41 +1073,44 @@ namespace POLY {
             return __r;
         }
 
+        sps Ln(const sps &__f) {
+            int __n = __f.size(), __k = __lg(__n);
+            sps __g = __f;
+            int __iv = Pre::Inv(__g[0]);
+            for (int S = 0; S < __n; ++S)
+                __g[S] = mod(1ll * __g[S] * __iv);
+            sps __h = inverse_ranked(__g), __r(__n);
+            for (int __m = __k - 1; __m >= 0; --__m) {
+                int __s = __k - __m - 1, __sz = 1 << __s;
+                vector<int> __gm(__sz), __hu(__sz);
+                for (int A = 0; A < __sz; ++A) {
+                    int __S = (1 << __m) | (A << (__m + 1));
+                    __gm[A] = __g[__S];
+                    __hu[A] = __h[A << (__m + 1)];
+                }
+                vector<int> __out = subset_conv(__gm, __hu, __s);
+                for (int A = 0; A < __sz; ++A)
+                    __r[(1 << __m) | (A << (__m + 1))] = __out[A];
+            }
+            return __r;
+        }
+
         sps Exp(const sps &__f) {
             int __n = __f.size(), __k = __lg(__n);
-            vector<vector<int>> __F(__k + 1, vector<int>(__n)),
-                __G(__k + 1, vector<int>(__n));
-            for (int S = 0; S < __n; ++S)
-                __F[__builtin_popcount(S)][S] = __f[S];
-            for (int i = 0; i <= __k; ++i)
-                for (int bit = 1; bit < __n; bit <<= 1)
-                    for (int S = 0; S < __n; ++S)
-                        if (S & bit)
-                            __F[i][S] = add(__F[i][S], __F[i][S ^ bit]);
-            vector<int> __ny(__k + 1);
-            for (int i = 1; i <= __k; ++i)
-                __ny[i] = Pre::Inv(i);
-            for (int S = 0; S < __n; ++S) {
-                vector<int> __e(__k + 1);
-                __e[0] = 1;
-                for (int i = 1; i <= __k; ++i) {
-                    long long __s = 0;
-                    for (int j = 1; j <= i; ++j)
-                        __s = (__s + 1ll * j * __F[j][S] % P * __e[i - j]) % P;
-                    __e[i] = 1ll * __ny[i] * __s % P;
+            sps __g(__n);
+            __g[0] = 1;
+            for (int __m = __k - 1; __m >= 0; --__m) {
+                int __s = __k - __m - 1, __sz = 1 << __s;
+                vector<int> __fm(__sz), __gu(__sz);
+                for (int A = 0; A < __sz; ++A) {
+                    __fm[A] = __f[(1 << __m) | (A << (__m + 1))];
+                    __gu[A] = __g[A << (__m + 1)];
                 }
-                for (int i = 0; i <= __k; ++i)
-                    __G[i][S] = __e[i];
+                vector<int> __out = subset_conv(__fm, __gu, __s);
+                for (int A = 0; A < __sz; ++A)
+                    __g[(1 << __m) | (A << (__m + 1))] = __out[A];
             }
-            for (int i = 0; i <= __k; ++i)
-                for (int bit = 1; bit < __n; bit <<= 1)
-                    for (int S = 0; S < __n; ++S)
-                        if (S & bit)
-                            __G[i][S] = del(__G[i][S], __G[i][S ^ bit]);
-            sps __r(__n);
-            for (int S = 0; S < __n; ++S)
-                __r[S] = __G[__builtin_popcount(S)][S];
-            return __r;
+            return __g;
         }
 
         sps pin(int __n) {
