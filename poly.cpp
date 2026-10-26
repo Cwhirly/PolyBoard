@@ -1008,33 +1008,41 @@ namespace POLY {
                 __G(__k + 1, vector<int>(__n));
             for (int S = 0; S < __n; ++S)
                 __F[__builtin_popcount(S)][S] = __f[S];
-            for (int i = 0; i <= __k; ++i)
-                for (int bit = 1; bit < __n; bit <<= 1)
-                    for (int S = 0; S < __n; ++S)
-                        if (S & bit)
-                            __F[i][S] = add(__F[i][S], __F[i][S ^ bit]);
-            vector<int> __ny(__k + 1);
+            for (int i = 0; i <= __k; ++i) {
+                int *__f = __F[i].data();
+                for (int __len = 1; __len < __n; __len <<= 1)
+                    for (int L = 0; L < __n; L += __len << 1)
+                        for (int j = 0; j < __len; ++j)
+                            __f[L + j + __len] =
+                                add(__f[L + j + __len], __f[L + j]);
+            }
+            vector<int> __ny(__k + 1), __c(__k + 1), __l(__k + 1);
             for (int i = 1; i <= __k; ++i)
                 __ny[i] = Pre::Inv(i);
+            int __iv = Pre::Inv(__f[0]);
             for (int S = 0; S < __n; ++S) {
-                int __iv = Pre::Inv(__F[0][S]);
-                vector<int> __c(__k + 1), __l(__k + 1);
                 for (int i = 0; i <= __k; ++i)
                     __c[i] = mod(1ll * __F[i][S] * __iv);
+                __l[0] = 0;
                 for (int i = 1; i <= __k; ++i) {
-                    long long __s = 0;
+                    unsigned __int128 __s = 0;
                     for (int j = 1; j < i; ++j)
-                        __s = (__s + 1ll * j * __l[j] % P * __c[i - j]) % P;
-                    __l[i] = mod(__c[i] - 1ll * __ny[i] * __s % P);
+                        __s += (unsigned long long)(1ll * j * __l[j] % P) *
+                               __c[i - j];
+                    __l[i] = mod(__c[i] -
+                                 (long long)(__s % P) * __ny[i] % P);
                 }
                 for (int i = 0; i <= __k; ++i)
                     __G[i][S] = __l[i];
             }
-            for (int i = 0; i <= __k; ++i)
-                for (int bit = 1; bit < __n; bit <<= 1)
-                    for (int S = 0; S < __n; ++S)
-                        if (S & bit)
-                            __G[i][S] = del(__G[i][S], __G[i][S ^ bit]);
+            for (int i = 0; i <= __k; ++i) {
+                int *__g = __G[i].data();
+                for (int __len = 1; __len < __n; __len <<= 1)
+                    for (int L = 0; L < __n; L += __len << 1)
+                        for (int j = 0; j < __len; ++j)
+                            __g[L + j + __len] =
+                                del(__g[L + j + __len], __g[L + j]);
+            }
             sps __r(__n);
             for (int S = 0; S < __n; ++S)
                 __r[S] = __G[__builtin_popcount(S)][S];
@@ -1047,31 +1055,37 @@ namespace POLY {
                 __G(__k + 1, vector<int>(__n));
             for (int S = 0; S < __n; ++S)
                 __F[__builtin_popcount(S)][S] = __f[S];
-            for (int i = 0; i <= __k; ++i)
-                for (int bit = 1; bit < __n; bit <<= 1)
-                    for (int S = 0; S < __n; ++S)
-                        if (S & bit)
-                            __F[i][S] = add(__F[i][S], __F[i][S ^ bit]);
-            vector<int> __ny(__k + 1);
+            for (int i = 0; i <= __k; ++i) {
+                int *__f = __F[i].data();
+                for (int __len = 1; __len < __n; __len <<= 1)
+                    for (int L = 0; L < __n; L += __len << 1)
+                        for (int j = 0; j < __len; ++j)
+                            __f[L + j + __len] =
+                                add(__f[L + j + __len], __f[L + j]);
+            }
+            vector<int> __ny(__k + 1), __e(__k + 1);
             for (int i = 1; i <= __k; ++i)
                 __ny[i] = Pre::Inv(i);
             for (int S = 0; S < __n; ++S) {
-                vector<int> __e(__k + 1);
                 __e[0] = 1;
                 for (int i = 1; i <= __k; ++i) {
-                    long long __s = 0;
+                    unsigned __int128 __s = 0;
                     for (int j = 1; j <= i; ++j)
-                        __s = (__s + 1ll * j * __F[j][S] % P * __e[i - j]) % P;
-                    __e[i] = 1ll * __ny[i] * __s % P;
+                        __s += (unsigned long long)(1ll * j * __F[j][S] % P) *
+                               __e[i - j];
+                    __e[i] = (long long)(__s % P) * __ny[i] % P;
                 }
                 for (int i = 0; i <= __k; ++i)
                     __G[i][S] = __e[i];
             }
-            for (int i = 0; i <= __k; ++i)
-                for (int bit = 1; bit < __n; bit <<= 1)
-                    for (int S = 0; S < __n; ++S)
-                        if (S & bit)
-                            __G[i][S] = del(__G[i][S], __G[i][S ^ bit]);
+            for (int i = 0; i <= __k; ++i) {
+                int *__g = __G[i].data();
+                for (int __len = 1; __len < __n; __len <<= 1)
+                    for (int L = 0; L < __n; L += __len << 1)
+                        for (int j = 0; j < __len; ++j)
+                            __g[L + j + __len] =
+                                del(__g[L + j + __len], __g[L + j]);
+            }
             sps __r(__n);
             for (int S = 0; S < __n; ++S)
                 __r[S] = __G[__builtin_popcount(S)][S];
@@ -1716,6 +1730,7 @@ inline void work() {
 #endif
     sps f = UCSF::pin(n);
     UCSF::ppri(Exp(f), n);
+    
 }
 
 signed main() {
