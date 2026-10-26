@@ -1,0 +1,6 @@
+[package]
+name = "polyboard"
+version = "1.0.0"
+edition = "2021"
+description = "Rust port of the PolyBoard competitive-programming polynomial template"
+license = "MIT"
