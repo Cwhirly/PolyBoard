@@ -936,7 +936,7 @@ namespace POLY {
                                 add(__f[L + j + __len], __f[L + j]);
             }
             int __iv = Pre::Inv(a[0]);
-            vector<int> __d(__k + 1);
+            poly __d(__k + 1);
             for (int S = 0; S < __n; ++S) {
                 __d[0] = __iv;
                 for (int i = 1; i <= __k; ++i) {
@@ -1043,7 +1043,8 @@ namespace POLY {
                             __f[L + j + __len] =
                                 add(__f[L + j + __len], __f[L + j]);
             }
-            vector<int> __ny(__k + 1), __c(__k + 1), __l(__k + 1);
+            vector<int> __ny(__k + 1);
+            poly __c(__k + 1), __l(__k + 1);
             for (int i = 1; i <= __k; ++i)
                 __ny[i] = Pre::Inv(i);
             int __iv = Pre::Inv(__f[0]);
@@ -1090,7 +1091,8 @@ namespace POLY {
                             __f[L + j + __len] =
                                 add(__f[L + j + __len], __f[L + j]);
             }
-            vector<int> __ny(__k + 1), __e(__k + 1);
+            vector<int> __ny(__k + 1);
+            poly __e(__k + 1);
             for (int i = 1; i <= __k; ++i)
                 __ny[i] = Pre::Inv(i);
             for (int S = 0; S < __n; ++S) {
