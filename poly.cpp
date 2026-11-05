@@ -1170,20 +1170,30 @@ poly UCPF::Ln(poly __f) {
 
 poly UCPF::Exp(poly __f) {
     int __n = __f.size();
-    poly __ans;
-    int __dep = 1;
-    __ans.pb(1);
-    while (__dep < (__n << 1)) {
-        poly __lnf = Ln(__ans);
-        __lnf = __f - __lnf;
-        __lnf.resize(__dep << 1);
-        ++__lnf[0];
-        __ans *= __lnf;
-        __ans.resize(__dep << 1);
-        __dep <<= 1;
+    poly __g;
+    __g.pb(1);
+    int __m = 1;
+    while (__m < __n) {
+        int __m2 = __m << 1;
+        poly __gp = __g;
+        __gp.resize(__m2);
+        poly __h = ~__gp;
+        __h.resize(__m2);
+        poly __d = ::Dx(__gp);
+        __d *= __h;
+        __d.resize(__m2 - 1);
+        __d = ::Integ(__d);
+        __d.resize(__m2);
+        poly __q(__m2);
+        for (int i = 0; i < __m2; ++i)
+            __q[i] = mod((i < __n ? __f[i] : 0) - __d[i]);
+        __q[0] = mod(__q[0] + 1);
+        __g *= __q;
+        __g.resize(__m2);
+        __m = __m2;
     }
-    __ans.resize(__n);
-    return __ans;
+    __g.resize(__n);
+    return __g;
 }
 
 poly UCPF::Sqrt(poly __f) {
