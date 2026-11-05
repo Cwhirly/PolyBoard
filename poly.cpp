@@ -518,35 +518,39 @@ namespace POLY {
 
         void NTT(bool __) {
             int __n = size();
+            int *__restrict p = a.data();
             if (__) {
                 for (int __len = __n; __len >= 2; __len >>= 1) {
                     int __half = __len >> 1;
-                    const int *__w = Pre::gp + (NL - __len);
+                    const int *__restrict w = Pre::gp + (NL - __len);
                     for (int i = 0; i < __n; i += __len) {
+                        int *__restrict q = p + i;
                         for (int j = 0; j < __half; ++j) {
-                            int __u = a[i + j], __v = a[i + j + __half];
-                            a[i + j] = add(__u, __v);
-                            a[i + j + __half] =
-                                mod(1ll * __w[j] * del(__u, __v));
+                            int __u = q[j], __v = q[j + __half];
+                            q[j] = add(__u, __v);
+                            q[j + __half] =
+                                1ll * w[j] * (__u >= __v ? __u - __v
+                                                         : __u - __v + P) % P;
                         }
                     }
                 }
             } else {
                 for (int __len = 2; __len <= __n; __len <<= 1) {
                     int __half = __len >> 1;
-                    const int *__w = Pre::igp + (NL - __len);
+                    const int *__restrict w = Pre::igp + (NL - __len);
                     for (int i = 0; i < __n; i += __len) {
+                        int *__restrict q = p + i;
                         for (int j = 0; j < __half; ++j) {
-                            int __u = a[i + j],
-                                __v = mod(1ll * __w[j] * a[i + j + __half]);
-                            a[i + j] = add(__u, __v);
-                            a[i + j + __half] = del(__u, __v);
+                            int __u = q[j],
+                                __v = 1ll * w[j] * q[j + __half] % P;
+                            q[j] = add(__u, __v);
+                            q[j + __half] = del(__u, __v);
                         }
                     }
                 }
                 long long __inv = Pre::Inv(__n);
                 for (int i = 0; i < __n; ++i)
-                    a[i] = mod(a[i] * __inv);
+                    p[i] = 1ll * p[i] * __inv % P;
             }
         }
 
