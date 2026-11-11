@@ -633,52 +633,37 @@ namespace POLY {
         }
 
         poly operator~() const {
-            int __n = size(), __dep = 1, __lim = 1;
-            poly __res, __f;
+            int __n = size();
             if (!__n)
-                return __res;
-            if (!ATN) {
-                while (__lim < (__n << 1))
-                    __lim <<= 1;
-                __res.reserve(__lim);
-                __res.pb(Pre::Inv(a[0]));
-                while (__dep < (__n << 1)) {
-                    __f = *this;
-                    __f.resize(__dep);
-                    poly __t = __f * __res;
-                    __t.resize(__dep << 1);
-                    for (int i = 0; i < (__dep << 1); ++i)
-                        __t[i] = __t[i] ? P - __t[i] : 0;
-                    __t[0] = mod((__t[0] + 2));
-                    __res = __res * __t;
-                    __res.resize(__dep << 1);
-                    __dep <<= 1;
-                }
-                __res.resize(__n);
-                return __res;
+                return poly();
+            int __len = 1;
+            while (__len < __n)
+                __len <<= 1;
+            poly __out(__len);
+            __out[0] = Pre::Inv(a[0]);
+            for (int __k = 1; __k < __len; __k <<= 1) {
+                int __k2 = __k << 1;
+                poly __t1(__k2), __t2(__k2);
+                for (int i = 0; i < __k2 && i < __n; ++i)
+                    __t1[i] = a[i];
+                for (int i = 0; i < __k; ++i)
+                    __t2[i] = __out[i];
+                __t1.NTT(1);
+                __t2.NTT(1);
+                for (int i = 0; i < __k2; ++i)
+                    __t1[i] = mod(1ll * __t1[i] * __t2[i]);
+                __t1.NTT(0);
+                for (int i = 0; i < __k; ++i)
+                    __t1[i] = 0;
+                __t1.NTT(1);
+                for (int i = 0; i < __k2; ++i)
+                    __t1[i] = mod(1ll * __t1[i] * __t2[i]);
+                __t1.NTT(0);
+                for (int i = __k; i < __k2; ++i)
+                    __out[i] = mod(P - __t1[i]);
             }
-            while (__lim < (__n << 1))
-                __lim <<= 1;
-            __res.reserve(__lim);
-            __res.pb(Pre::Inv(a[0]));
-            while (__dep < (__n << 1)) {
-                __f = *this;
-                __f.resize(__dep);
-                __f.resize(__dep << 1);
-                if (__dep != 1)
-                    __res.resize(__dep >> 1);
-                __res.resize(__dep << 1);
-                __f.NTT(1);
-                __res.NTT(1);
-                for (int i = 0; i < (__dep << 1); ++i)
-                    __res[i] =
-                        mod(1ll * __res[i] *
-                            (2 + P - mod(1ll * __f[i] * __res[i])));
-                __res.NTT(0);
-                __dep <<= 1;
-            }
-            __res.resize(__n);
-            return __res;
+            __out.resize(__n);
+            return __out;
         }
 
         poly operator/(const poly &__t) const {
@@ -1174,30 +1159,48 @@ poly UCPF::Ln(poly __f) {
 
 poly UCPF::Exp(poly __f) {
     int __n = __f.size();
-    poly __g;
-    __g.pb(1);
-    int __m = 1;
-    while (__m < __n) {
-        int __m2 = __m << 1;
-        poly __gp = __g;
-        __gp.resize(__m2);
-        poly __h = ~__gp;
-        __h.resize(__m2);
-        poly __d = ::Dx(__gp);
-        __d *= __h;
-        __d.resize(__m2 - 1);
-        __d = ::Integ(__d);
-        __d.resize(__m2);
-        poly __q(__m2);
-        for (int i = 0; i < __m2; ++i)
-            __q[i] = mod((i < __n ? __f[i] : 0) - __d[i]);
-        __q[0] = mod(__q[0] + 1);
-        __g *= __q;
-        __g.resize(__m2);
-        __m = __m2;
+    if (!__n)
+        return poly();
+    int __len = 1;
+    while (__len < __n)
+        __len <<= 1;
+    poly __out(__len), __g(__len);
+    __out[0] = __g[0] = 1;
+    for (int __k = 1; __k < __len; __k <<= 1) {
+        int __k2 = __k << 1;
+        poly __t1(__k2), __t2(__k2), __t3(__k2), __t4(__k2);
+        for (int i = 0; i < __k; ++i)
+            __t1[i] = __out[i], __t2[i] = __g[i];
+        __t1.NTT(1), __t2.NTT(1);
+        for (int i = 0; i < __k2; ++i)
+            __t3[i] = mod(-1ll * __t1[i] * __t2[i] % P * __t2[i] % P);
+        __t3.NTT(0);
+        for (int i = 0; i < __k; ++i)
+            __t3[i] = __g[i];
+        __t3.NTT(1);
+        for (int i = 0; i + 1 < __k; ++i)
+            __t4[i] = mod(1ll * (i + 1) * __out[i + 1]);
+        __t4.NTT(1);
+        for (int i = 0; i < __k2; ++i)
+            __t4[i] = mod(1ll * __t4[i] * __t3[i]);
+        __t4.NTT(0);
+        __t4 = ::Integ(__t4);
+        __t4.resize(__k2);
+        for (int i = __k; i < __k2; ++i)
+            __t4[i] = mod(__t4[i] - (i < __n ? __f[i] : 0));
+        for (int i = 0; i < __k; ++i)
+            __t4[i] = 0;
+        __t4.NTT(1);
+        for (int i = 0; i < __k2; ++i) {
+            __t1[i] = mod(1ll * __t1[i] * (1 - __t4[i] + P));
+            __t2[i] = mod(__t3[i] + 1ll * __t2[i] * __t4[i]);
+        }
+        __t1.NTT(0), __t2.NTT(0);
+        for (int i = __k; i < __k2; ++i)
+            __out[i] = __t1[i], __g[i] = __t2[i];
     }
-    __g.resize(__n);
-    return __g;
+    __out.resize(__n);
+    return __out;
 }
 
 poly UCPF::Sqrt(poly __f) {
