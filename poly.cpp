@@ -418,9 +418,13 @@ namespace POLY {
     class poly;
 
 
+    class sps;
+
     namespace PIO {
         poly pin(int __n);
         void ppri(const poly &__f, int __n);
+        sps spsin(int __n);
+        void sppri(const sps &__f, int __n);
     }
 
     namespace UCPF {
@@ -441,15 +445,11 @@ namespace POLY {
         poly Trans(poly __f, int __c);
     }
 
-    class sps;
-
     namespace UCSF {
         sps Dx(const sps &__f);
         sps Integ(const sps &__f);
         sps Ln(const sps &__f);
         sps Exp(const sps &__f);
-        sps pin(int __n);
-        void ppri(const sps &__f, int __n);
     }
 
     using namespace UCPF;
@@ -1110,22 +1110,6 @@ namespace POLY {
             return __r;
         }
 
-        sps pin(int __n) {
-            int __s = 1 << __n;
-            sps __f(__s);
-            for (int i = 0; i < __s; ++i)
-                read(__f[i]);
-            return __f;
-        }
-
-        void ppri(const sps &__f, int __n) {
-            int __s = 1 << __n;
-            for (int i = 0; i < __s; ++i) {
-                print(i < __f.size() ? Pint::tp(__f[i]) : 0);
-                pc(' ');
-            }
-            pc('\n');
-        }
     }
 }
 
@@ -1329,6 +1313,23 @@ void PIO::ppri(const poly &__f, int __n) {
     int __s = __f.size();
     for (int i = 0; i < __n; ++i) {
         print(i < __s ? Pint::tp(__f[i]) : 0);
+        pc(' ');
+    }
+    pc('\n');
+}
+
+sps PIO::spsin(int __n) {
+    int __s = 1 << __n;
+    sps __f(__s);
+    for (int i = 0; i < __s; ++i)
+        read(__f[i]);
+    return __f;
+}
+
+void PIO::sppri(const sps &__f, int __n) {
+    int __s = 1 << __n;
+    for (int i = 0; i < __s; ++i) {
+        print(i < __f.size() ? Pint::tp(__f[i]) : 0);
         pc(' ');
     }
     pc('\n');
@@ -1765,10 +1766,8 @@ using CCNHLR::Bostam_Mori_CCNHLR;
 #if __INCLUDE_LEVEL__ == 0
 
 inline void work() {
-    int n,a,r;
+    int n;
     read(n);
-    read(a);
-    read(r);
 #if POLYBOARD_P_FIXED
     Pre::initYG();
 #else
@@ -1776,11 +1775,9 @@ inline void work() {
     read(p);
     Pre::init(p);
 #endif
-    vector<int> y(n),x(n);
-    for(int i=0;i<n;i++) read(y[i]);
-    x[0]=a;
-    for(int i=1;i<n;i++) x[i]=mod(1ll*x[i-1]*r);
-    ppri(PFI(x,y),n);
+    sps f = PIO::spsin(n);
+    PIO::sppri(~f, n);
+    
 }
 
 signed main() {
