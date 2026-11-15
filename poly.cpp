@@ -443,6 +443,7 @@ namespace POLY {
         poly Subset(poly __f, poly __g);
         poly Pow_For_Luogu(poly __f, int __k1, int __k2, int __kk);
         poly Trans(poly __f, int __c);
+        poly Compose(poly __f, poly __g);
     }
 
     namespace UCSF {
@@ -1762,6 +1763,157 @@ namespace CCNHLR {
 }
 
 using CCNHLR::Bostam_Mori_CCNHLR;
+
+
+namespace ComposeDetail {
+    using BP = vector<poly>;
+    struct LP {
+        int lo;
+        BP a;
+    };
+
+    BP negX(const BP &__a) {
+        BP __b = __a;
+        for (int j = 0; j < __b.size(); ++j)
+            for (int i = 1; i < __b[j].size(); i += 2)
+                __b[j][i] = mod(P - __b[j][i]);
+        return __b;
+    }
+
+    poly encode(const BP &__a, int __base) {
+        int __mx = 0;
+        for (int j = 0; j < __a.size(); ++j)
+            __mx = Vmax(__mx, __a[j].size() - 1);
+        if (__mx < 0)
+            return poly();
+        poly __f((__mx + 1) * __base);
+        for (int j = 0; j < __a.size(); ++j)
+            for (int i = 0; i < __a[j].size(); ++i)
+                __f[i * __base + j] = __a[j][i];
+        return __f;
+    }
+
+    BP decode(const poly &__h, int __base, int __yd, int __xd) {
+        BP __c(__yd + 1);
+        for (int j = 0; j <= __yd; ++j)
+            __c[j].resize(__xd + 1);
+        for (int j = 0; j <= __yd; ++j)
+            for (int i = 0; i <= __xd; ++i) {
+                int __id = i * __base + j;
+                if (__id < __h.size())
+                    __c[j][i] = __h[__id];
+            }
+        return __c;
+    }
+
+    BP mul(const BP &__a, const BP &__b) {
+        int __base = __a.size() + __b.size() - 1;
+        int __xa = 0, __xb = 0;
+        for (int j = 0; j < __a.size(); ++j)
+            __xa = Vmax(__xa, __a[j].size() - 1);
+        for (int j = 0; j < __b.size(); ++j)
+            __xb = Vmax(__xb, __b[j].size() - 1);
+        poly __f = encode(__a, __base), __g = encode(__b, __base);
+        poly __h = __f * __g;
+        return decode(__h, __base, __a.size() + __b.size() - 2, __xa + __xb);
+    }
+
+    BP evenX(const BP &__a, int __m) {
+        BP __b(__a.size());
+        for (int j = 0; j < __a.size(); ++j) {
+            __b[j].resize(__m + 1);
+            for (int i = 0; i <= __m; ++i)
+                if (2 * i < __a[j].size())
+                    __b[j][i] = __a[j][2 * i];
+        }
+        return __b;
+    }
+
+    BP substX2(const BP &__a) {
+        BP __b(__a.size());
+        for (int j = 0; j < __a.size(); ++j) {
+            if (__a[j].empty())
+                continue;
+            __b[j].resize(2 * __a[j].size() - 1);
+            for (int i = 0; i < __a[j].size(); ++i)
+                __b[j][2 * i] = __a[j][i];
+        }
+        return __b;
+    }
+
+    vector<poly> solve(const LP &__p, const BP &__q, int __m, int __g0) {
+        int __d = (int)__q.size() - 1;
+        if (__m == 0) {
+            vector<int> __iv(__d), __inv(__d + 1);
+            __inv[1] = 1;
+            for (int i = 2; i <= __d; ++i)
+                __inv[i] = mod(P - 1ll * (P / i) * __inv[P % i] % P);
+            int __pw = 1, __c = 1;
+            for (int j = 0; j < __d; ++j) {
+                __iv[j] = 1ll * __c * __pw % P;
+                __c = 1ll * __c * (__d + j) % P * __inv[j + 1] % P;
+                __pw = 1ll * __pw * __g0 % P;
+            }
+            vector<poly> __r(__d);
+            for (int i = 0; i < __d; ++i)
+                __r[i].resize(1);
+            for (int k = 0; k < __p.a.size(); ++k) {
+                int __e = __p.lo + k;
+                int __v = __p.a[k].empty() ? 0 : __p.a[k][0];
+                for (int s = -__d + 1; s <= 0; ++s) {
+                    int __j = s - __e;
+                    if (__j >= 0 && __j < __d)
+                        __r[s + __d - 1][0] =
+                            mod(__r[s + __d - 1][0] + 1ll * __v * __iv[__j]);
+                }
+            }
+            return __r;
+        }
+        BP __qn = negX(__q);
+        BP __r = mul(__q, __qn);
+        BP __v = evenX(__r, __m >> 1);
+        vector<poly> __t = solve(__p, __v, __m >> 1, __g0);
+        BP __tp(__t.size());
+        for (int i = 0; i < __t.size(); ++i)
+            __tp[i] = __t[i];
+        BP __t2 = substX2(__tp);
+        BP __u = mul(__t2, __qn);
+        vector<poly> __res(__d);
+        int __lo = -(2 * __d - 1);
+        for (int i = 0; i < __d; ++i) {
+            int __j = i - __d + 1 - __lo;
+            if (__j >= 0 && __j < __u.size()) {
+                __res[i] = __u[__j];
+                __res[i].resize(__m + 1);
+            } else {
+                __res[i].resize(__m + 1);
+            }
+        }
+        return __res;
+    }
+}
+
+poly UCPF::Compose(poly __f, poly __g) {
+    int __n = __f.size();
+    if (!__n)
+        return poly();
+    int __m = __n - 1;
+    int __g0 = __g.empty() ? 0 : __g[0];
+    ComposeDetail::LP __p;
+    __p.lo = -(__n - 1);
+    __p.a.resize(__n);
+    for (int i = 0; i < __n; ++i)
+        __p.a[__n - 1 - i].pb(__f[i]);
+    ComposeDetail::BP __q(2);
+    __q[0].pb(1);
+    __q[1].resize(__m + 1);
+    for (int i = 0; i < __g.size() && i <= __m; ++i)
+        __q[1][i] = mod(P - __g[i]);
+    auto __t = ComposeDetail::solve(__p, __q, __m, __g0);
+    poly __r = __t[0];
+    __r.resize(__n);
+    return __r;
+}
 
 #if __INCLUDE_LEVEL__ == 0
 

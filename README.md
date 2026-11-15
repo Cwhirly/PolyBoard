@@ -261,6 +261,7 @@ poly to_poly() const;
 | `UCSF::Integ(f)` | rank 积分：`(If)(S) = f(S)/abs(S)`，空集为 0 |
 | `UCSF::Ln(f)` | `ln(f/f[∅])`，常数项为 0，要求 `f[∅]` 可逆 |
 | `UCSF::Exp(f)` | `exp(f)`，要求 `f[∅] = 0` |
+| `UCPF::Compose(f, g)` | `f(g(x)) mod x^{f.size()}`，支持 `g[0]` 非零 |
 | `PIO::spsin(n)` | 读入 `2^n` 个数，返回长度 `2^n` 的 `sps` |
 | `PIO::sppri(f, n)` | 输出 `2^n` 项，不足补 0 |
 
