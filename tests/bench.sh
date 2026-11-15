@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 BIN=build/driver
 n=20000
 rep=3
-ops="conv inv ln exp compose"
+ops="conv inv ln exp compose revert"
 while [ $# -gt 0 ]; do
     case "$1" in
         -n|--size) n="$2"; shift 2 ;;

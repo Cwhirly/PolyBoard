@@ -1,4 +1,4 @@
-# PolyBoard 1.22.0
+# PolyBoard 1.23.0
 
 PolyBoard 是面向 OI 的单文件 C++ 多项式与矩阵模板，默认模数 `998244353`。主要功能包括 NTT / MTT 卷积、形式幂级数运算、多点求值与快速插值、集合幂级数与位运算卷积、斯特林数、下降幂转换、常系数线性递推，以及矩阵基本运算、高斯消元、行列式与求逆。
 
@@ -383,6 +383,7 @@ void ppri(const poly &f, int n);  // 输出前 n 项，不足补零；空格分�
 | `Pow_For_Luogu(f, k1, k2, kk)` | `f^k`，指数超大时使用 | `f ≠ 0` | `n` |
 | `Trans(f, c)` | 平移 `f(x + c)` | 无 | `n` |
 | `Shift_Values(y, m)` | 已知 `f(0..n)=y`，求 `f(m..m+n)` | `y.size() = n+1`，`m > n` | `n+1` |
+| `Revert(f)` | 复合逆 `g`，满足 `f(g)=x mod x^n` | `f[0]=0`，`f[1]≠0` | `f.size()` |
 | `Compose(f, g)` | `f(g(x)) mod x^{f.size()}`，复杂度 `O(n log^2 n)` | 无，`g[0]` 可非零 | `f.size()` |
 
 - `Compose` 在固定 NTT 友好模数且根长度足够时走半长 NTT 快速实现；非 NTT 模数回退到 Horner。

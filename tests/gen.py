@@ -228,3 +228,18 @@ for n, m, tag in [(0,1,"tiny"),(1,2,"small"),(5,10,"small"),(30,100,"big")]:
     y = [eval_poly(f, i) for i in range(n + 1)]
     z = [eval_poly(f, m + i) for i in range(n + 1)]
     wr("shift", f"{tag}_{n}_{m}", f"{n} {m}\n{fmt(y)}", fmt(z))
+
+
+def revert_series(f, n):
+    g = [0] * n
+    if n <= 1:
+        return g
+    g[1] = pow(f[1], P - 2, P)
+    for k in range(2, n):
+        h = compose(f, g, n)
+        g[k] = (-h[k] * g[1]) % P
+    return g
+for n in [2, 3, 5, 20, 50]:
+    f = [0] + [random.randrange(P) for _ in range(n - 1)]
+    f[1] = random.randrange(1, P)
+    wr("revert", f"n{n}", f"{n}\n{fmt(f)}", fmt(revert_series(f, n)))

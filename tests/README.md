@@ -27,6 +27,7 @@ tests/run.sh -q           # 只输出失败和汇总
 | `matmul` / `matinv` / `matdet` | 矩阵 |
 | `badinv` / `badln` / `badexp` / `badmat` | 期望错误 |
 | `shift` | 连续点值平移 |
+| `revert` | 复合逆 |
 | `prop` | 恒等式/性质测试 |
 
 ## 性质测试
@@ -41,6 +42,7 @@ tests/run.sh -q           # 只输出失败和汇总
 - 子集卷积对暴力
 - 多点求值再插值回原多项式
 - 连续点值平移对直接求值
+- 复合逆的 `f(g)=x`
 
 ## 性能测试
 

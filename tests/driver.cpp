@@ -114,6 +114,21 @@ static bool prop(string op, int n, unsigned seed) {
                 return false;
         return true;
     }
+    if (op == "revert") {
+        poly f(n + 1);
+        rnd(f, rng);
+        f[0] = 0;
+        f[1] = 1;
+        poly g = UCPF::Revert(f);
+        poly h = UCPF::Compose(f, g);
+        h.resize(n + 1);
+        for (int i = 0; i <= n; ++i) {
+            int e = (i == 1);
+            if (h[i] != e)
+                return false;
+        }
+        return true;
+    }
     if (op == "shift") {
         poly f(n + 1);
         rnd(f, rng);
@@ -171,6 +186,12 @@ static unsigned long long bench(string op, int n, unsigned seed, int rep) {
             h = UCPF::Exp(f);
         else if (op == "compose")
             h = UCPF::Compose(f, g);
+        else if (op == "revert") {
+            f[0] = 0;
+            f[1] = 1;
+            g[0] = 1;
+            h = UCPF::Revert(f);
+        }
         else
             return 0;
     }
@@ -278,6 +299,11 @@ int main(int argc, char **argv) {
             for (int j = 1; j <= n; ++j)
                 cin >> a(i, j);
         cout << a.det() << "\n";
+    } else if (mode == "revert") {
+        int n;
+        cin >> n;
+        poly f = PIO::pin(n);
+        out(UCPF::Revert(f), n);
     } else if (mode == "shift") {
         int n, m;
         cin >> n >> m;

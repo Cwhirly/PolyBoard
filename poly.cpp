@@ -541,6 +541,7 @@ namespace POLY {
         poly Trans(poly __f, int __c);
         poly Shift_Values(poly __y, int __m);
         poly Compose(poly __f, poly __g);
+        poly Revert(poly __f);
     }
 
     namespace UCSF {
@@ -1976,6 +1977,41 @@ poly UCPF::Compose(poly __f, poly __g) {
     }
     __res.resize(__n);
     return __res;
+}
+
+poly UCPF::Revert(poly __f) {
+    int __n = __f.size();
+    if (__n <= 1 || __f.size() < 2)
+        return poly(__n);
+    poly __g(2);
+    __g[1] = Pre::Inv(__f[1]);
+    int __m = 2;
+    while (__m < __n) {
+        int __m2 = __m << 1;
+        poly __ff = __f;
+        __ff.resize(min(__n, __m2));
+        poly __fg = Compose(__ff, __g);
+        __fg.resize(__m2);
+        poly __dfg(__fg.size() - 1);
+        for (int i = 1; i < __fg.size(); ++i)
+            __dfg[i - 1] = mod(1ll * i * __fg[i]);
+        __fg[1] = mod(__fg[1] + P - 1);
+        poly __dgx(__g.size() - 1);
+        for (int i = 1; i < __g.size(); ++i)
+            __dgx[i - 1] = mod(1ll * i * __g[i]);
+        __dgx.resize(__m2 - 1);
+        poly __invg = ~__dgx;
+        poly __dg = __dfg * __invg;
+        __dg.resize(__m2);
+        poly __de = __fg * ~__dg;
+        __de.resize(__m2);
+        __g.resize(__m2);
+        for (int i = 0; i < __m2; ++i)
+            __g[i] = mod(__g[i] + P - __de[i]);
+        __m = __m2;
+    }
+    __g.resize(__n);
+    return __g;
 }
 
 #if __INCLUDE_LEVEL__ == 0
