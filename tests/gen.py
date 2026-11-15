@@ -216,3 +216,15 @@ wr("compose", "corner_zero_g", "3 1\n1 2 3\n0\n", fmt(compose([1,2,3],[0],3)))
 wr("spsinv", "corner_one", "2\n1 0 0 0\n", fmt(subset_inv([1,0,0,0],2)))
 wr("spsexp", "corner_zero", "2\n0 0 0 0\n", fmt(subset_exp([0,0,0,0],2)))
 wr("high", "corner_equal", "8 5\n1 2 3 4 5 6 7 8\n6 7 8 9 10\n", fmt(conv([1,2,3,4,5,6,7,8],[6,7,8,9,10])[4:8]))
+
+
+def eval_poly(f, x):
+    r = 0
+    for c in reversed(f):
+        r = (r * x + c) % P
+    return r
+for n, m, tag in [(0,1,"tiny"),(1,2,"small"),(5,10,"small"),(30,100,"big")]:
+    f = [random.randrange(P) for _ in range(n + 1)]
+    y = [eval_poly(f, i) for i in range(n + 1)]
+    z = [eval_poly(f, m + i) for i in range(n + 1)]
+    wr("shift", f"{tag}_{n}_{m}", f"{n} {m}\n{fmt(y)}", fmt(z))

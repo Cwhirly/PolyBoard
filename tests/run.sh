@@ -54,7 +54,7 @@ pass=0
 fail=0
 for f in $sel; do
     if [ "$f" = "prop" ]; then
-        for op in sqrt trig trans div bit subset interp; do
+        for op in sqrt trig trans div bit subset interp shift; do
             if printf '%s 64 20261115\n' "$op" | "$BIN" prop >/dev/null; then
                 pass=$((pass+1))
                 [ "$quiet" = 1 ] || echo "PASS prop/$op"

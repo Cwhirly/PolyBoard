@@ -539,6 +539,7 @@ namespace POLY {
         poly Subset(poly __f, poly __g);
         poly Pow_For_Luogu(poly __f, int __k1, int __k2, int __kk);
         poly Trans(poly __f, int __c);
+        poly Shift_Values(poly __y, int __m);
         poly Compose(poly __f, poly __g);
     }
 
@@ -1353,6 +1354,35 @@ poly UCPF::Trans(poly __f, int __c) {
     return __h;
 }
 
+poly UCPF::Shift_Values(poly __y, int __m) {
+    int __n = __y.size() - 1;
+    if (__n < 0)
+        return poly();
+    poly __a(__n + 1), __b(2 * __n + 1);
+    for (int i = 0; i <= __n; ++i) {
+        int __v = 1ll * __y[i] * Pre::ifac[i] % P * Pre::ifac[__n - i] % P;
+        __a[i] = (__n - i) & 1 ? mod(P - __v) : __v;
+    }
+    __m = mod(__m);
+    for (int i = 0; i <= 2 * __n; ++i)
+        __b[i] = Pre::Inv(mod(__m - __n + i));
+    poly __c = __a * __b;
+    int __l = mod(__m - __n), __r = __m;
+    int __prod = 1;
+    for (int i = 0; i <= __n; ++i)
+        __prod = 1ll * __prod * mod(__l + i) % P;
+    poly __res(__n + 1);
+    for (int i = 0; i <= __n; ++i) {
+        __res[i] = 1ll * __c[__n + i] * __prod % P;
+        __prod = 1ll * __prod * Pre::Inv(__l) % P;
+        ++__r;
+        __prod = 1ll * __prod * __r % P;
+        ++__l;
+        __l = mod(__l), __r = mod(__r);
+    }
+    return __res;
+}
+
 poly PIO::pin(int __n) {
     poly __f;
     __f.reserve(__n);
@@ -1951,8 +1981,9 @@ poly UCPF::Compose(poly __f, poly __g) {
 #if __INCLUDE_LEVEL__ == 0
 
 inline void work() {
-    int n;
-    read(n);
+    int n,m;
+    read(n),read(m);
+    n++,m++;
 #if POLYBOARD_P_FIXED
     Pre::initYG();
 #else
@@ -1960,8 +1991,8 @@ inline void work() {
     read(p);
     Pre::init(p);
 #endif
-    sps f = PIO::spsin(n);
-    PIO::sppri(~f, n);
+    poly f=pin(n),g=pin(m);
+    ppri(Compose(f,g),n);
     
 }
 

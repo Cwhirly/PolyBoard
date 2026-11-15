@@ -114,6 +114,27 @@ static bool prop(string op, int n, unsigned seed) {
                 return false;
         return true;
     }
+    if (op == "shift") {
+        poly f(n + 1);
+        rnd(f, rng);
+        poly y(n + 1);
+        for (int i = 0; i <= n; ++i) {
+            long long z = 0;
+            for (int j = n; j >= 0; --j)
+                z = (z * i + f[j]) % P;
+            y[i] = z;
+        }
+        int m = n + 1 + rng() % 100;
+        poly h = UCPF::Shift_Values(y, m);
+        for (int i = 0; i <= n; ++i) {
+            long long z = 0;
+            for (int j = n; j >= 0; --j)
+                z = (z * (m + i) + f[j]) % P;
+            if (h[i] != z)
+                return false;
+        }
+        return true;
+    }
     if (op == "interp") {
         poly f(n);
         rnd(f, rng);
@@ -257,6 +278,11 @@ int main(int argc, char **argv) {
             for (int j = 1; j <= n; ++j)
                 cin >> a(i, j);
         cout << a.det() << "\n";
+    } else if (mode == "shift") {
+        int n, m;
+        cin >> n >> m;
+        poly y = PIO::pin(n + 1);
+        out(UCPF::Shift_Values(y, m), n + 1);
     } else if (mode == "badinv") {
         int n;
         cin >> n;
