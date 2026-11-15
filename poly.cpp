@@ -1819,11 +1819,11 @@ namespace CCNHLR {
 using CCNHLR::Bostam_Mori_CCNHLR;
 
 
-namespace compose {
+namespace COMP {
     int nttlen(int __n) {
-        --__n;
-        __n |= __n >> 1, __n |= __n >> 2, __n |= __n >> 4, __n |= __n >> 8;
-        return (__n | __n >> 16) + 1;
+        if (__n <= 1)
+            return 1;
+        return 1 << (__lg(__n - 1) + 1);
     }
 
     vector<int> conv(vector<int> __a, vector<int> __b) {
@@ -1922,7 +1922,7 @@ poly UCPF::Compose(poly __f, poly __g) {
             __ff[i] = __f[i];
         for (int i = 0; i < __g.size(); ++i)
             __gg[i] = __g[i];
-        auto __hh = compose::composition(__ff, __gg, __n);
+        auto __hh = COMP::composition(__ff, __gg, __n);
         poly __res(__n);
         for (int i = 0; i < __n; ++i)
             __res[i] = __hh[i];
