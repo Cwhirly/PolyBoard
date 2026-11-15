@@ -1,4 +1,5 @@
 #include <bits/stdc++.h>
+#include "compose_fast.hpp"
 
 using namespace std;
 namespace IO {
@@ -1894,6 +1895,19 @@ namespace ComposeDetail {
 }
 
 poly UCPF::Compose(poly __f, poly __g) {
+#if POLYBOARD_P_FIXED && POLYBOARD_P == 998244353
+    int __n = __f.size();
+    vector<FastCompose::ModInt<998244353>> __ff(__n), __gg(__g.size());
+    for (int i = 0; i < __n; ++i)
+        __ff[i] = __f[i];
+    for (int i = 0; i < __g.size(); ++i)
+        __gg[i] = __g[i];
+    auto __hh = FastCompose::composition(__ff, __gg, __n);
+    poly __res(__n);
+    for (int i = 0; i < __n; ++i)
+        __res[i] = __hh[i].val();
+    return __res;
+#else
     int __n = __f.size();
     if (!__n)
         return poly();
@@ -1913,6 +1927,7 @@ poly UCPF::Compose(poly __f, poly __g) {
     poly __r = __t[0];
     __r.resize(__n);
     return __r;
+#endif
 }
 
 #if __INCLUDE_LEVEL__ == 0

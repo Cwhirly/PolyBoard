@@ -384,6 +384,8 @@ void ppri(const poly &f, int n);  // 输出前 n 项，不足补零；空格分�
 | `Trans(f, c)` | 平移 `f(x + c)` | 无 | `n` |
 | `Compose(f, g)` | `f(g(x)) mod x^{f.size()}`，复杂度 `O(n log^2 n)` | 无，`g[0]` 可非零 | `f.size()` |
 
+- `Compose` 在 `P=998244353` 时走半长 NTT 的快速实现；其他固定模数回退到通用二元实现。
+
 - `ArcCos(f)` 定义为 `-ArcSin(f)`，常数项为 0；真正的 `arccos` 会多一个 `π/2`，需要时自行补常数。
 - `Pow_For_Luogu` 的三个指数参数：
   - `kk`：指数的真实值，用于判断 `f` 的最低非零项次数乘以指数是否已超过长度，从而直接返回 0；

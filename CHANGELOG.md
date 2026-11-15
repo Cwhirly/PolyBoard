@@ -6,6 +6,7 @@
 - FPS 求逆与 `Exp` 改用循环卷积的融合牛顿迭代。
 - `sps` 的 IO 移入 `PIO`，改名 `spsin` / `sppri`。
 - 新增 `UCPF::Compose`，用二元 Bostan–Mori 实现多项式复合。
+- `P=998244353` 的 `Compose` 接入半长 NTT 快速实现。
 - NTT 使用局部指针与直接取模，减少热路径开销。
 - 同步 Rust 1.1.0。
 
