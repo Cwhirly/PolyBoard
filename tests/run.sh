@@ -2,9 +2,9 @@
 set -u
 cd "$(dirname "$0")"
 ROOT=..
-DIR=cases
+DIR=build/cases
 BIN=build/driver
-FEATURES="conv inv ln exp compose high spsinv spsexp matmul matinv matdet badinv badln badexp badmat"
+FEATURES="conv inv ln exp compose high spsinv spsexp matmul matinv matdet badinv badln badexp badmat prop"
 
 usage() {
     echo "usage: $0 [options] [feature...]"
@@ -12,6 +12,7 @@ usage() {
     echo "  -r, --rebuild    rebuild driver"
     echo "  -q, --quiet      only failures"
     echo "  -a, --all        all features (default)"
+    echo "  -g, --gen        regenerate data"
 }
 
 list() {
@@ -22,6 +23,7 @@ list() {
 
 rebuild=0
 quiet=0
+gen=0
 sel=""
 for a in "$@"; do
     case "$a" in
@@ -30,12 +32,16 @@ for a in "$@"; do
         -r|--rebuild) rebuild=1 ;;
         -q|--quiet) quiet=1 ;;
         -a|--all) sel="$FEATURES" ;;
+        -g|--gen) gen=1 ;;
         -*) echo "unknown option: $a"; usage; exit 2 ;;
         *) sel="$sel $a" ;;
     esac
 done
 [ -n "$sel" ] || sel="$FEATURES"
 
+if [ "$gen" = 1 ] || [ ! -d "$DIR" ]; then
+    python3 gen.py
+fi
 if [ "$rebuild" = 1 ] || [ ! -x "$BIN" ] || [ "$ROOT/poly.cpp" -nt "$BIN" ] || [ "driver.cpp" -nt "$BIN" ]; then
     mkdir -p build
     if ! g++ -O2 -std=c++17 -o "$BIN" driver.cpp; then
@@ -47,6 +53,18 @@ fi
 pass=0
 fail=0
 for f in $sel; do
+    if [ "$f" = "prop" ]; then
+        for op in sqrt trig trans div bit subset interp; do
+            if printf '%s 64 20261115\n' "$op" | "$BIN" prop >/dev/null; then
+                pass=$((pass+1))
+                [ "$quiet" = 1 ] || echo "PASS prop/$op"
+            else
+                fail=$((fail+1))
+                echo "FAIL prop/$op"
+            fi
+        done
+        continue
+    fi
     [ -d "$DIR/$f" ] || { echo "unknown feature: $f"; fail=$((fail+1)); continue; }
     for input in "$DIR/$f"/*.in; do
         [ -e "$input" ] || continue

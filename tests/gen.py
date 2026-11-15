@@ -1,7 +1,7 @@
 import os, random, itertools
 P = 998244353
 ROOT = os.path.dirname(os.path.abspath(__file__))
-C = os.path.join(ROOT, "cases")
+C = os.path.join(ROOT, "build", "cases")
 
 def wr(feature, name, inp, out=None, err=False):
     d = os.path.join(C, feature)

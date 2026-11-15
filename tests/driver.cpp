@@ -9,6 +9,159 @@ template <class T> void out(const T &a, int n) {
     cout << "\n";
 }
 
+
+static bool same(const poly &a, const poly &b, int n) {
+    for (int i = 0; i < n; ++i) {
+        int x = i < a.size() ? a[i] : 0;
+        int y = i < b.size() ? b[i] : 0;
+        if (x != y)
+            return false;
+    }
+    return true;
+}
+
+static void rnd(poly &f, mt19937 &rng) {
+    for (int i = 0; i < f.size(); ++i)
+        f[i] = rng() % P;
+}
+
+static bool prop(string op, int n, unsigned seed) {
+    mt19937 rng(seed);
+    if (op == "sqrt") {
+        poly f(n);
+        rnd(f, rng);
+        f[0] = 1;
+        poly h = UCPF::Sqrt(f);
+        poly p = h * h;
+        return same(p, f, n);
+    }
+    if (op == "trig") {
+        poly f(n);
+        rnd(f, rng);
+        f[0] = 0;
+        poly s = UCPF::Sin(f), c = UCPF::Cos(f);
+        poly p = s * s + c * c;
+        poly one(1);
+        one[0] = 1;
+        return same(p, one, n);
+    }
+    if (op == "trans") {
+        poly f(n);
+        rnd(f, rng);
+        int c = rng() % P;
+        poly h = UCPF::Trans(f, c);
+        poly g(n);
+        vector<int> pw(n);
+        pw[0] = 1;
+        for (int i = 1; i < n; ++i)
+            pw[i] = 1ll * pw[i - 1] * c % P;
+        for (int k = 0; k < n; ++k) {
+            long long z = 0;
+            for (int i = k; i < n; ++i) {
+                int b = 1ll * Pre::fac[i] * Pre::ifac[k] % P * Pre::ifac[i - k] % P;
+                z += 1ll * f[i] * b % P * pw[i - k] % P;
+                if (z >= (1ll << 61))
+                    z %= P;
+            }
+            g[k] = z % P;
+        }
+        return same(h, g, n);
+    }
+    if (op == "div") {
+        poly f(2 * n), g(n + 1);
+        rnd(f, rng);
+        rnd(g, rng);
+        g[0] = 1;
+        poly q = f / g;
+        poly p = q * g + (f % g);
+        return same(p, f, f.size());
+    }
+    if (op == "bit") {
+        int len = 1 << 3;
+        poly f(len), g(len);
+        rnd(f, rng);
+        rnd(g, rng);
+        for (int t = 0; t < 3; ++t) {
+            poly h = t == 0 ? UCPF::AND(f, g)
+                     : t == 1 ? UCPF::OR(f, g)
+                              : UCPF::XOR(f, g);
+            poly e(len);
+            for (int i = 0; i < len; ++i)
+                for (int j = 0; j < len; ++j) {
+                    int k = t == 0 ? (i & j) : t == 1 ? (i | j) : (i ^ j);
+                    e[k] = mod(e[k] + 1ll * f[i] * g[j]);
+                }
+            if (!same(h, e, len))
+                return false;
+        }
+        return true;
+    }
+    if (op == "subset") {
+        int k = 3, len = 1 << k;
+        sps f(len), g(len);
+        for (int i = 0; i < len; ++i)
+            f[i] = rng() % P, g[i] = rng() % P;
+        sps h = f * g;
+        sps e(len);
+        for (int s = 0; s < len; ++s)
+            for (int t = s;; t = (t - 1) & s) {
+                e[s] = mod(e[s] + 1ll * f[t] * g[s ^ t]);
+                if (!t)
+                    break;
+            }
+        for (int i = 0; i < len; ++i)
+            if (h[i] != e[i])
+                return false;
+        return true;
+    }
+    if (op == "interp") {
+        poly f(n);
+        rnd(f, rng);
+        vector<int> x(n);
+        for (int i = 0; i < n; ++i)
+            x[i] = i;
+        poly y = PMPE(f, x);
+        vector<int> yv(n);
+        for (int i = 0; i < n; ++i)
+            yv[i] = y[i];
+        poly h = PFI(x, yv);
+        return same(h, f, n);
+    }
+    return false;
+}
+
+static unsigned long long bench(string op, int n, unsigned seed, int rep) {
+    mt19937 rng(seed);
+    poly f(n), g(n);
+    rnd(f, rng);
+    rnd(g, rng);
+    f[0] = 0;
+    g[0] = 1;
+    poly h;
+    auto st = chrono::steady_clock::now();
+    for (int t = 0; t < rep; ++t) {
+        if (op == "conv")
+            h = f * g;
+        else if (op == "inv")
+            h = ~g;
+        else if (op == "ln")
+            h = UCPF::Ln(g);
+        else if (op == "exp")
+            h = UCPF::Exp(f);
+        else if (op == "compose")
+            h = UCPF::Compose(f, g);
+        else
+            return 0;
+    }
+    auto en = chrono::steady_clock::now();
+    unsigned long long z = 0;
+    for (int i = 0; i < h.size(); ++i)
+        z = z * 131 + h[i];
+    fprintf(stderr, "%s n=%d rep=%d %.3fms hash=%llu\n", op.c_str(), n, rep,
+            chrono::duration<double, milli>(en - st).count(), z);
+    return z;
+}
+
 int main(int argc, char **argv) {
     if (argc < 2)
         return 2;
@@ -135,6 +288,18 @@ int main(int argc, char **argv) {
         if (a.det() == 0)
             return 3;
         cout << a.det() << "\n";
+    } else if (mode == "prop") {
+        string op;
+        int n;
+        unsigned seed;
+        cin >> op >> n >> seed;
+        return prop(op, n, seed) ? 0 : 1;
+    } else if (mode == "bench") {
+        string op;
+        int n, rep;
+        unsigned seed;
+        cin >> op >> n >> seed >> rep;
+        return bench(op, n, seed, rep) ? 0 : 1;
     } else {
         return 2;
     }
