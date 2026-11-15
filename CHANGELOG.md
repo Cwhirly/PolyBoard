@@ -3,6 +3,7 @@
 - 新增 `UCPF::Compose`，用二元 Bostan–Mori 实现多项式复合，输出长度取 `f.size()`，支持 `g[0]` 非零。
 - 固定 NTT 友好模数下使用半长 NTT 快速实现；非 NTT 模数回退到 Horner。
 - 移除独立的 Compose 头文件，实现内联到 `poly.cpp`。
+- 新增统一 `dft` 核心，`poly` 的 NTT 与 Compose 共用同一套变换和根表。
 
 ## 1.20.0
 

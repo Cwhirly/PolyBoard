@@ -365,6 +365,102 @@ namespace Quad {
 
 }
 
+
+namespace dft {
+    int *rt = nullptr, *irt = nullptr, lim = 0;
+
+    void build(int __n) {
+        if (__n <= lim)
+            return;
+        delete[] rt;
+        delete[] irt;
+        lim = __n;
+        rt = new int[lim + 2];
+        irt = new int[lim + 2];
+        int __ord = __builtin_ctz(P - 1);
+        int __z = Pre::Q(Y, (P - 1) >> __ord);
+        int __iz = Pre::Inv(__z);
+        rt[0] = irt[0] = 1;
+        for (int i = 0; i + 2 <= __ord && (1 << i) < lim; ++i) {
+            int j = 1 << i;
+            rt[j] = Pre::Q(__z, 1 << (__ord - i - 2));
+            irt[j] = Pre::Q(__iz, 1 << (__ord - i - 2));
+            for (int k = j + 1; k < (j << 1) && k < lim; ++k) {
+                rt[k] = 1ll * rt[k - j] * rt[j] % P;
+                irt[k] = 1ll * irt[k - j] * irt[j] % P;
+            }
+        }
+    }
+
+    void forward(int *__a, int __n) {
+        if (__n <= 1)
+            return;
+        build((__n >> 1) + 1);
+        for (int j = 0, l = __n >> 1; j != l; ++j) {
+            int u = __a[j], v = __a[j + l];
+            __a[j] = add(u, v);
+            __a[j + l] = del(u, v);
+        }
+        for (int i = __n >> 1; i >= 2; i >>= 1) {
+            for (int j = 0, l = i >> 1; j != l; ++j) {
+                int u = __a[j], v = __a[j + l];
+                __a[j] = add(u, v);
+                __a[j + l] = del(u, v);
+            }
+            for (int j = i, l = i >> 1, m = 1; j != __n; j += i, ++m)
+                for (int k = j; k != j + l; ++k) {
+                    int u = __a[k], v = 1ll * __a[k + l] * rt[m] % P;
+                    __a[k] = add(u, v);
+                    __a[k + l] = del(u, v);
+                }
+        }
+    }
+
+    void inverse(int *__a, int __n) {
+        if (__n <= 1)
+            return;
+        build((__n >> 1) + 1);
+        for (int i = 2; i < __n; i <<= 1) {
+            for (int j = 0, l = i >> 1; j != l; ++j) {
+                int u = __a[j], v = __a[j + l];
+                __a[j] = add(u, v);
+                __a[j + l] = del(u, v);
+            }
+            for (int j = i, l = i >> 1, m = 1; j != __n; j += i, ++m)
+                for (int k = j; k != j + l; ++k) {
+                    int u = __a[k], v = __a[k + l];
+                    __a[k] = add(u, v);
+                    __a[k + l] = 1ll * del(u, v) * irt[m] % P;
+                }
+        }
+        int __iv = Pre::Inv(__n);
+        for (int j = 0, l = __n >> 1; j != l; ++j) {
+            int u = 1ll * __a[j] * __iv % P;
+            int v = 1ll * __a[j + l] * __iv % P;
+            __a[j] = add(u, v);
+            __a[j + l] = del(u, v);
+        }
+    }
+
+    void high(const int *__a, int __n, const int *__b, int __m, int *__out) {
+        int __len = 1;
+        while (__len < __n)
+            __len <<= 1;
+        vector<int> __u(__len), __v(__len);
+        for (int i = 0; i < __n; ++i)
+            __u[i] = __a[i];
+        for (int i = 0; i < __m; ++i)
+            __v[i] = __b[i];
+        forward(__u.data(), __len);
+        forward(__v.data(), __len);
+        for (int i = 0; i < __len; ++i)
+            __u[i] = 1ll * __u[i] * __v[i] % P;
+        inverse(__u.data(), __len);
+        for (int i = __m - 1; i < __n; ++i)
+            __out[i - __m + 1] = __u[i];
+    }
+}
+
 namespace FFT {
     template <class T>
     void run(vector<T> &__a, bool __fwd) {
@@ -518,41 +614,10 @@ namespace POLY {
         }
 
         void NTT(bool __) {
-            int __n = size();
-            int *__restrict p = a.data();
-            if (__) {
-                for (int __len = __n; __len >= 2; __len >>= 1) {
-                    int __half = __len >> 1;
-                    const int *__restrict w = Pre::gp + (NL - __len);
-                    for (int i = 0; i < __n; i += __len) {
-                        int *__restrict q = p + i;
-                        for (int j = 0; j < __half; ++j) {
-                            int __u = q[j], __v = q[j + __half];
-                            q[j] = add(__u, __v);
-                            q[j + __half] =
-                                1ll * w[j] * (__u >= __v ? __u - __v
-                                                         : __u - __v + P) % P;
-                        }
-                    }
-                }
-            } else {
-                for (int __len = 2; __len <= __n; __len <<= 1) {
-                    int __half = __len >> 1;
-                    const int *__restrict w = Pre::igp + (NL - __len);
-                    for (int i = 0; i < __n; i += __len) {
-                        int *__restrict q = p + i;
-                        for (int j = 0; j < __half; ++j) {
-                            int __u = q[j],
-                                __v = 1ll * w[j] * q[j + __half] % P;
-                            q[j] = add(__u, __v);
-                            q[j + __half] = del(__u, __v);
-                        }
-                    }
-                }
-                long long __inv = Pre::Inv(__n);
-                for (int i = 0; i < __n; ++i)
-                    p[i] = 1ll * p[i] * __inv % P;
-            }
+            if (__)
+                dft::forward(a.data(), size());
+            else
+                dft::inverse(a.data(), size());
         }
 
         poly operator*=(const poly &__t) {
@@ -617,19 +682,8 @@ namespace POLY {
                     __res[i - __m + 1] = __u[i];
                 return __res;
             }
-            while (__len < __n)
-                __len <<= 1;
-            poly __u = *this, __v = __t;
-            __u.resize(__len);
-            __v.resize(__len);
-            __u.NTT(1);
-            __v.NTT(1);
-            for (int i = 0; i < __len; ++i)
-                __u[i] = mod(1ll * __u[i] * __v[i]);
-            __u.NTT(0);
             poly __res(__n - __m + 1);
-            for (int i = __m - 1; i < __n; ++i)
-                __res[i - __m + 1] = __u[i];
+            dft::high(a.data(), __n, __t.a.data(), __m, __res.a.data());
             return __res;
         }
 
@@ -1766,226 +1820,95 @@ using CCNHLR::Bostam_Mori_CCNHLR;
 
 
 namespace compose {
-template <unsigned Mod>
-class ModInt {
-    static_assert((Mod >> 31) == 0);
-    static unsigned safe_mod(int v) {
-        if ((v %= (int)Mod) < 0) v += (int)Mod;
-        return v;
+    int nttlen(int __n) {
+        --__n;
+        __n |= __n >> 1, __n |= __n >> 2, __n |= __n >> 4, __n |= __n >> 8;
+        return (__n | __n >> 16) + 1;
     }
-    struct private_constructor_t {};
-    static inline private_constructor_t private_constructor{};
-    ModInt(private_constructor_t, unsigned v) : v_(v) {}
-    unsigned v_;
-public:
-    static unsigned mod() { return Mod; }
-    static ModInt from_raw(unsigned v) { return ModInt(private_constructor, v); }
-    ModInt() : v_() {}
-    ModInt(int v) : v_(safe_mod(v)) {}
-    unsigned val() const { return v_; }
-    ModInt operator-() const { return from_raw(v_ == 0 ? v_ : Mod - v_); }
-    ModInt pow(int e) const {
-        if (e < 0) return inv().pow(-e);
-        for (ModInt x(*this), res(from_raw(1));; x *= x) {
-            if (e & 1) res *= x;
-            if ((e >>= 1) == 0) return res;
-        }
+
+    vector<int> conv(vector<int> __a, vector<int> __b) {
+        int __n = __a.size(), __m = __b.size();
+        int __len = nttlen(__n + __m - 1);
+        __a.resize(__len);
+        __b.resize(__len);
+        dft::forward(__a.data(), __len);
+        dft::forward(__b.data(), __len);
+        for (int i = 0; i < __len; ++i)
+            __a[i] = 1ll * __a[i] * __b[i] % P;
+        dft::inverse(__a.data(), __len);
+        __a.resize(__n + __m - 1);
+        return __a;
     }
-    ModInt inv() const {
-        int x1 = 1, x3 = 0, a = v_, b = Mod;
-        while (b) {
-            int q = a / b, x1_old = x1, a_old = a;
-            x1 = x3, x3 = x1_old - x3 * q, a = b, b = a_old - b * q;
-        }
-        return from_raw(x1 < 0 ? x1 + (int)Mod : x1);
-    }
-    ModInt &operator+=(const ModInt &a) {
-        if ((v_ += a.v_) >= Mod) v_ -= Mod;
-        return *this;
-    }
-    ModInt &operator-=(const ModInt &a) {
-        if ((v_ += Mod - a.v_) >= Mod) v_ -= Mod;
-        return *this;
-    }
-    ModInt &operator*=(const ModInt &a) {
-        v_ = (unsigned long long)v_ * a.v_ % Mod;
-        return *this;
-    }
-    friend ModInt operator+(const ModInt &a, const ModInt &b) { return ModInt(a) += b; }
-    friend ModInt operator-(const ModInt &a, const ModInt &b) { return ModInt(a) -= b; }
-    friend ModInt operator*(const ModInt &a, const ModInt &b) { return ModInt(a) *= b; }
-    friend bool operator==(const ModInt &a, const ModInt &b) { return a.v_ == b.v_; }
-    friend bool operator!=(const ModInt &a, const ModInt &b) { return a.v_ != b.v_; }
-};
-template <typename Tp>
-class NttInfo {
-    static Tp least_quadratic_nonresidue() {
-        for (int i = 2;; ++i)
-            if (Tp::from_raw(i).pow((Tp::mod() - 1) / 2) == -1) return Tp::from_raw(i);
-    }
-    const int ordlog2_;
-    const Tp zeta_;
-    const Tp invzeta_;
-    mutable std::vector<Tp> root_;
-    mutable std::vector<Tp> invroot_;
-    NttInfo()
-        : ordlog2_(__builtin_ctz(Tp::mod() - 1)),
-          zeta_(least_quadratic_nonresidue().pow((Tp::mod() - 1) >> ordlog2_)),
-          invzeta_(zeta_.inv()), root_{Tp::from_raw(1)}, invroot_{Tp::from_raw(1)} {}
-public:
-    static const NttInfo &get() { static NttInfo info; return info; }
-    const std::vector<Tp> &root(int n) const {
-        if (const int s = root_.size(); s < n) {
-            root_.resize(n);
-            for (int i = __builtin_ctz(s); (1 << i) < n; ++i) {
-                const int j = 1 << i;
-                root_[j] = zeta_.pow(1 << (ordlog2_ - i - 2));
-                for (int k = j + 1; k < j * 2; ++k) root_[k] = root_[k - j] * root_[j];
+
+    vector<int> composition(const vector<int> &__f, const vector<int> &__g, int __n) {
+        if (__n <= 0)
+            return {};
+        if (__g.empty())
+            return vector<int>(__n);
+        struct rec {
+            const vector<int> &f_;
+            int g0_;
+            rec(const vector<int> &f, int g0) : f_(f), g0_(g0) {}
+            vector<int> run(const vector<int> &__q, int __d, int __m) const {
+                if (__m == 0) {
+                    vector<int> A(__d), invQ(__d);
+                    for (int i = __d - 1, j = 0; j < (int)f_.size() && i >= 0;)
+                        A[i--] = f_[j++];
+                    vector<int> iv(__d + 1);
+                    iv[1] = 1;
+                    for (int i = 2; i <= __d; ++i)
+                        iv[i] = mod(P - 1ll * (P / i) * iv[P % i] % P);
+                    int c = 1, pw = 1;
+                    for (int i = 0; i < __d; ++i) {
+                        invQ[i] = 1ll * c * pw % P;
+                        c = 1ll * c * (__d + i) % P * iv[i + 1] % P;
+                        pw = 1ll * pw * g0_ % P;
+                    }
+                    auto PinvQ = conv(A, invQ);
+                    PinvQ.resize(__d);
+                    return PinvQ;
+                }
+                int __len = nttlen((__d * 2 + 1) * (__m * 2 + 2) - 1);
+                vector<int> nttQ(__len);
+                for (int i = 0; i <= __d; ++i)
+                    for (int j = 0; j <= __m; ++j)
+                        nttQ[i * (__m * 2 + 2) + j] = __q[i * (__m + 1) + j];
+                dft::forward(nttQ.data(), __len);
+                vector<int> VV(__len / 2);
+                for (int i = 0; i < __len; i += 2)
+                    VV[i / 2] = 1ll * nttQ[i] * nttQ[i + 1] % P;
+                dft::inverse(VV.data(), __len / 2);
+                vector<int> V((__d * 2 + 1) * (__m / 2 + 1));
+                for (int i = 0; i <= __d * 2; ++i)
+                    for (int j = 0; j <= __m / 2; ++j)
+                        V[i * (__m / 2 + 1) + j] = VV[i * (__m + 1) + j];
+                auto T = run(V, __d * 2, __m / 2);
+                vector<int> nttT(__len / 2);
+                for (int i = 0; i < __d * 2; ++i)
+                    for (int j = 0; j <= __m / 2; ++j)
+                        nttT[i * (__m + 1) + j] = T[i * (__m / 2 + 1) + j];
+                dft::forward(nttT.data(), __len / 2);
+                vector<int> UU(__len);
+                for (int i = 0; i < __len; i += 2) {
+                    UU[i] = 1ll * nttT[i / 2] * nttQ[i + 1] % P;
+                    UU[i + 1] = 1ll * nttT[i / 2] * nttQ[i] % P;
+                }
+                dft::inverse(UU.data(), __len);
+                vector<int> U(__d * (__m + 1));
+                for (int i = 0; i < __d; ++i)
+                    for (int j = 0; j <= __m; ++j)
+                        U[i * (__m + 1) + j] = UU[(i + __d) * (__m * 2 + 2) + j];
+                return U;
             }
-        }
-        return root_;
+        } a(__f, __g[0]);
+        vector<int> Q(__n * 2);
+        Q[0] = 1;
+        for (int i = __n, j = 0; j < (int)__g.size() && i < __n * 2;)
+            Q[i++] = mod(P - __g[j++]);
+        auto res = a.run(Q, 1, max(__n - 1, (int)__f.size() - 1));
+        res.resize(__n);
+        return res;
     }
-    const std::vector<Tp> &inv_root(int n) const {
-        if (const int s = invroot_.size(); s < n) {
-            invroot_.resize(n);
-            for (int i = __builtin_ctz(s); (1 << i) < n; ++i) {
-                const int j = 1 << i;
-                invroot_[j] = invzeta_.pow(1 << (ordlog2_ - i - 2));
-                for (int k = j + 1; k < j * 2; ++k) invroot_[k] = invroot_[k - j] * invroot_[j];
-            }
-        }
-        return invroot_;
-    }
-};
-template <typename Tp>
-class Binomial {
-    std::vector<Tp> factorial_, invfactorial_;
-    Binomial() : factorial_{Tp::from_raw(1)}, invfactorial_{Tp::from_raw(1)} {}
-    void preprocess(int n) {
-        if (const int nn = factorial_.size(); nn < n) {
-            int k = nn;
-            while (k < n) k *= 2;
-            factorial_.resize(k);
-            invfactorial_.resize(k);
-            for (int i = nn; i != k; ++i) factorial_[i] = factorial_[i - 1] * Tp::from_raw(i);
-            invfactorial_.back() = factorial_.back().inv();
-            for (int i = k - 2; i >= nn; --i)
-                invfactorial_[i] = invfactorial_[i + 1] * Tp::from_raw(i + 1);
-        }
-    }
-public:
-    static const Binomial &get(int n) { static Binomial bin; bin.preprocess(n); return bin; }
-    Tp binom(int n, int m) const { return n < m ? Tp() : factorial_[n] * invfactorial_[m] * invfactorial_[n - m]; }
-};
-int ntt_len(int n) {
-    --n;
-    n |= n >> 1, n |= n >> 2, n |= n >> 4, n |= n >> 8;
-    return (n | n >> 16) + 1;
-}
-template <typename Tp>
-void ntt(std::vector<Tp> &a) {
-    const int n = a.size();
-    for (int j = 0, l = n >> 1; j != l; ++j) {
-        auto u = a[j], v = a[j + l];
-        a[j] = u + v, a[j + l] = u - v;
-    }
-    auto &&root = NttInfo<Tp>::get().root(n / 2);
-    for (int i = n >> 1; i >= 2; i >>= 1) {
-        for (int j = 0, l = i >> 1; j != l; ++j) {
-            auto u = a[j], v = a[j + l];
-            a[j] = u + v, a[j + l] = u - v;
-        }
-        for (int j = i, l = i >> 1, m = 1; j != n; j += i, ++m)
-            for (int k = j; k != j + l; ++k) {
-                auto u = a[k], v = a[k + l] * root[m];
-                a[k] = u + v, a[k + l] = u - v;
-            }
-    }
-}
-template <typename Tp>
-void intt(std::vector<Tp> &a) {
-    const int n = a.size();
-    auto &&root = NttInfo<Tp>::get().inv_root(n / 2);
-    for (int i = 2; i < n; i <<= 1) {
-        for (int j = 0, l = i >> 1; j != l; ++j) {
-            auto u = a[j], v = a[j + l];
-            a[j] = u + v, a[j + l] = u - v;
-        }
-        for (int j = i, l = i >> 1, m = 1; j != n; j += i, ++m)
-            for (int k = j; k != j + l; ++k) {
-                auto u = a[k], v = a[k + l];
-                a[k] = u + v, a[k + l] = (u - v) * root[m];
-            }
-    }
-    const auto iv = Tp::from_raw(Tp::mod() - Tp::mod() / n);
-    for (int j = 0, l = n >> 1; j != l; ++j) {
-        auto u = a[j] * iv, v = a[j + l] * iv;
-        a[j] = u + v, a[j + l] = u - v;
-    }
-}
-template <typename Tp>
-std::vector<Tp> convolution_ntt(std::vector<Tp> a, std::vector<Tp> b) {
-    const int n = a.size(), m = b.size(), len = ntt_len(n + m - 1);
-    a.resize(len), b.resize(len);
-    ntt(a), ntt(b);
-    for (int i = 0; i != len; ++i) a[i] *= b[i];
-    intt(a);
-    a.resize(n + m - 1);
-    return a;
-}
-template <typename Tp>
-std::vector<Tp> composition(const std::vector<Tp> &f, const std::vector<Tp> &g, int n) {
-    if (n <= 0) return {};
-    if (g.empty()) return std::vector<Tp>(n);
-    struct rec {
-        const std::vector<Tp> &f_;
-        const Tp g0_;
-        rec(const std::vector<Tp> &f, Tp g0) : f_(f), g0_(g0) {}
-        std::vector<Tp> run(const std::vector<Tp> &Q, int d, int n) const {
-            if (n == 0) {
-                std::vector<Tp> P(d), invQ(d);
-                for (int i = d - 1, j = 0; j < (int)f_.size() && i >= 0;) P[i--] = f_[j++];
-                auto &&bin = Binomial<Tp>::get(d * 2);
-                for (int i = 0; i < d; ++i) invQ[i] = bin.binom(d + i - 1, i) * g0_.pow(i);
-                auto PinvQ = convolution_ntt(P, invQ);
-                PinvQ.resize(d);
-                return PinvQ;
-            }
-            const int len = ntt_len((d * 2 + 1) * (n * 2 + 2) - 1);
-            std::vector<Tp> nttQ(len);
-            for (int i = 0; i <= d; ++i)
-                for (int j = 0; j <= n; ++j) nttQ[i * (n * 2 + 2) + j] = Q[i * (n + 1) + j];
-            ntt(nttQ);
-            std::vector<Tp> VV(len / 2);
-            for (int i = 0; i != len; i += 2) VV[i / 2] = nttQ[i] * nttQ[i + 1];
-            intt(VV);
-            std::vector<Tp> V((d * 2 + 1) * (n / 2 + 1));
-            for (int i = 0; i <= d * 2; ++i)
-                for (int j = 0; j <= n / 2; ++j) V[i * (n / 2 + 1) + j] = VV[i * (n + 1) + j];
-            const auto T = run(V, d * 2, n / 2);
-            std::vector<Tp> nttT(len / 2);
-            for (int i = 0; i < d * 2; ++i)
-                for (int j = 0; j <= n / 2; ++j) nttT[i * (n + 1) + j] = T[i * (n / 2 + 1) + j];
-            ntt(nttT);
-            std::vector<Tp> UU(len);
-            for (int i = 0; i != len; i += 2) {
-                UU[i] = nttT[i / 2] * nttQ[i + 1];
-                UU[i + 1] = nttT[i / 2] * nttQ[i];
-            }
-            intt(UU);
-            std::vector<Tp> U(d * (n + 1));
-            for (int i = 0; i < d; ++i)
-                for (int j = 0; j <= n; ++j) U[i * (n + 1) + j] = UU[(i + d) * (n * 2 + 2) + j];
-            return U;
-        }
-    } a(f, g[0]);
-    std::vector<Tp> Q(n * 2);
-    Q[0] = Tp::from_raw(1);
-    for (int i = n, j = 0; j < (int)g.size() && i < n * 2;) Q[i++] = -g[j++];
-    auto res = a.run(Q, 1, std::max(n - 1, (int)f.size() - 1));
-    res.resize(n);
-    return res;
-}
 }
 
 poly UCPF::Compose(poly __f, poly __g) {
@@ -1994,7 +1917,7 @@ poly UCPF::Compose(poly __f, poly __g) {
         return poly();
 #if POLYBOARD_P_FIXED
     if (__builtin_ctz(POLYBOARD_P - 1) >= __lgup(4 * __n)) {
-        vector<compose::ModInt<POLYBOARD_P>> __ff(__n), __gg(__g.size());
+        vector<int> __ff(__n), __gg(__g.size());
         for (int i = 0; i < __n; ++i)
             __ff[i] = __f[i];
         for (int i = 0; i < __g.size(); ++i)
@@ -2002,7 +1925,7 @@ poly UCPF::Compose(poly __f, poly __g) {
         auto __hh = compose::composition(__ff, __gg, __n);
         poly __res(__n);
         for (int i = 0; i < __n; ++i)
-            __res[i] = __hh[i].val();
+            __res[i] = __hh[i];
         return __res;
     }
 #endif
