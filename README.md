@@ -261,7 +261,6 @@ poly to_poly() const;
 | `UCSF::Integ(f)` | rank 积分：`(If)(S) = f(S)/abs(S)`，空集为 0 |
 | `UCSF::Ln(f)` | `ln(f/f[∅])`，常数项为 0，要求 `f[∅]` 可逆 |
 | `UCSF::Exp(f)` | `exp(f)`，要求 `f[∅] = 0` |
-| `UCPF::Compose(f, g)` | `f(g(x)) mod x^{f.size()}`，支持 `g[0]` 非零 |
 | `PIO::spsin(n)` | 读入 `2^n` 个数，返回长度 `2^n` 的 `sps` |
 | `PIO::sppri(f, n)` | 输出 `2^n` 项，不足补 0 |
 
@@ -383,6 +382,7 @@ void ppri(const poly &f, int n);  // 输出前 n 项，不足补零；空格分�
 | `Subset(f, g)` | 子集卷积 | 长度相同且为 2 的幂 | 同输入 |
 | `Pow_For_Luogu(f, k1, k2, kk)` | `f^k`，指数超大时使用 | `f ≠ 0` | `n` |
 | `Trans(f, c)` | 平移 `f(x + c)` | 无 | `n` |
+| `Compose(f, g)` | `f(g(x)) mod x^{f.size()}`，复杂度 `O(n log^2 n)` | 无，`g[0]` 可非零 | `f.size()` |
 
 - `ArcCos(f)` 定义为 `-ArcSin(f)`，常数项为 0；真正的 `arccos` 会多一个 `π/2`，需要时自行补常数。
 - `Pow_For_Luogu` 的三个指数参数：
