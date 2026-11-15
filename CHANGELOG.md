@@ -1,3 +1,9 @@
+## 1.21.0
+
+- 新增 `UCPF::Compose`，用二元 Bostan–Mori 实现多项式复合，输出长度取 `f.size()`，支持 `g[0]` 非零。
+- 固定 NTT 友好模数下使用半长 NTT 快速实现；非 NTT 模数回退到 Horner。
+- 移除独立的 Compose 头文件，实现内联到 `poly.cpp`。
+
 ## 1.20.0
 
 - 新增 `sps::operator~` 子集卷积逆，以及 `UCSF` 的 `Dx`、`Integ`、`Ln`、`Exp`、`pin(n)` / `ppri(f, n)`（按 `2^n` 读写）。`Dx` / `Integ` 使用集合大小（rank）作为导数变量；`~` / `Ln` / `Exp` 使用 ranked zeta 加每个集合的 `O(k^2)` 递推，整体 `O(nk^2)`。
@@ -5,8 +11,6 @@
 - FPS `Exp` 改为全精度牛顿迭代，减少重复求逆。
 - FPS 求逆与 `Exp` 改用循环卷积的融合牛顿迭代。
 - `sps` 的 IO 移入 `PIO`，改名 `spsin` / `sppri`。
-- 新增 `UCPF::Compose`，用二元 Bostan–Mori 实现多项式复合。
-- `P=998244353` 的 `Compose` 接入半长 NTT 快速实现。
 - NTT 使用局部指针与直接取模，减少热路径开销。
 - 同步 Rust 1.1.0。
 
